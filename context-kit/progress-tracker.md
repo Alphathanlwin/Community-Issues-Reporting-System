@@ -1,7 +1,7 @@
 # 10. SCIRS — Progress Tracker
 
 **Current Phase:** Phase 0 — Analysis & Design
-**Last Updated:** _(update this date whenever you edit this file)_
+**Last Updated:** 2026-08-13
 
 > Agents: read this file **before** starting work and update it **after** finishing work. Mark `[x]` only when the item is actually working, not merely written.
 
@@ -24,7 +24,7 @@
 - [ ] UI wireframes — console shell
 - [ ] Git repository + branch strategy
 - [ ] PostgreSQL database created and reachable
-- [ ] Spring Boot project scaffolded with dependencies
+- [x] Spring Boot project scaffolded with dependencies
 - [ ] React + TypeScript + Tailwind + shadcn/ui scaffolded
 
 ## Phase 1 — Foundation & Authentication

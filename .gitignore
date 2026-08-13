@@ -13,4 +13,5 @@
 # ---- Backend (Spring Boot) ----
 backend/target/
 backend/uploads/
+backend/.env
 backend/src/main/resources/application-local.properties

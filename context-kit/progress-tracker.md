@@ -30,20 +30,20 @@
 ## Phase 1 — Foundation & Authentication
 
 ### Backend
-- [ ] `common/exception/` — ErrorResponse, custom exceptions, GlobalExceptionHandler
-- [ ] `common/config/` — CORS, async, property beans
-- [ ] `User`, `Role` entities + `RoleName`, `AccountStatus` enums
-- [ ] `UserRepository`, `RoleRepository`
-- [ ] Auth DTOs (login, register, response, UserDTO)
-- [ ] `AuthService` — login
-- [ ] `AuthService` — citizen registration (forced role + PENDING status)
-- [ ] `JwtUtil` (generate, validate, extract claims)
-- [ ] `CurrentUser` principal
-- [ ] `JwtAuthenticationFilter`
-- [ ] `SecurityConfig` with public/protected rules
-- [ ] `AuthController` — login, register, me
-- [ ] `DataSeeder` — roles + admin account (idempotent)
-- [ ] Tests: login success/failure, pending block, 401 without token, 403 wrong role
+- [x] `common/exception/` — ErrorResponse, custom exceptions, GlobalExceptionHandler
+- [x] `common/config/` — CORS, async, property beans
+- [x] `User`, `Role` entities + `RoleName`, `AccountStatus` enums
+- [x] `UserRepository`, `RoleRepository`
+- [x] Auth DTOs (login, register, response, UserDTO)
+- [x] `AuthService` — login
+- [x] `AuthService` — citizen registration (forced role + PENDING status)
+- [x] `JwtUtil` (generate, validate, extract claims)
+- [x] `CurrentUser` principal
+- [x] `JwtAuthenticationFilter`
+- [x] `SecurityConfig` with public/protected rules
+- [x] `AuthController` — login, register, me
+- [x] `DataSeeder` — roles + admin account (idempotent)
+- [x] Tests: login success/failure, pending block, 401 without token, 403 wrong role
 
 ### Frontend
 - [ ] API client with JWT injection + 401 handling
@@ -221,7 +221,8 @@ Append here as work proceeds, then mirror anything significant into `project-ove
 
 | Date | Decision | Reason |
 |------|----------|--------|
-| | | |
+| 2026-08-13 | `User.departmentId` is a plain `Long` FK column, not a `@ManyToOne` to `Department`, until Phase 2 | The `Department` entity doesn't exist yet; a relation can't compile against a nonexistent type. Convert to `@ManyToOne(fetch = LAZY)` once `department/entity/Department.java` is built. |
+| 2026-08-13 | `AccountNotApprovedException` maps to 403, not the 400 shown in `code-standards.md`'s generic exception-handler example | `api-standards.md` explicitly documents 403 for `PENDING`/`REJECTED`/`SUSPENDED` accounts on login. `AuthService.login`/`.me` are `@Transactional(readOnly = true)` — `User.role` is lazy and `open-in-view=false`, so the mapper needs the Hibernate session still open when it reads `user.getRole()` (see BUG-01 in `docs/bug-log.md`). |
 
 ---
 

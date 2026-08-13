@@ -9,3 +9,8 @@
 # Editor-based HTTP Client requests
 /httpRequests/
 /.idea
+
+# ---- Backend (Spring Boot) ----
+backend/target/
+backend/uploads/
+backend/src/main/resources/application-local.properties

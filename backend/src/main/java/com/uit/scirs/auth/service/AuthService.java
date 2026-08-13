@@ -42,6 +42,7 @@ public class AuthService {
         this.authMapper = authMapper;
     }
 
+    @Transactional(readOnly = true)
     public AuthResponseDTO login(LoginRequestDTO dto) {
         User user = userRepository.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
@@ -90,6 +91,7 @@ public class AuthService {
         return authMapper.toRegisterResponse(saved, "Your account is pending admin approval.");
     }
 
+    @Transactional(readOnly = true)
     public UserDTO me(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));

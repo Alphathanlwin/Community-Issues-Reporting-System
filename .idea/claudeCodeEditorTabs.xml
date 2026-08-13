@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ClaudeCodeEditorTabs">
-    <option name="activeSessionId" value="4a3eb3f2-146b-465c-a125-b61a3d7066cd" />
+    <option name="activeSessionId" value="0425fa9d-d9b0-47e1-81a7-1ecf2ded69f4" />
     <option name="openSessionIds">
       <list>
-        <option value="a71eb805-1fed-494e-9e66-ba01a576c043" />
         <option value="4a3eb3f2-146b-465c-a125-b61a3d7066cd" />
+        <option value="0425fa9d-d9b0-47e1-81a7-1ecf2ded69f4" />
       </list>
     </option>
     <option name="sessionPaths">
       <map>
-        <entry key="4a3eb3f2-146b-465c-a125-b61a3d7066cd" value="/sessions/new" />
-        <entry key="a71eb805-1fed-494e-9e66-ba01a576c043" value="/sessions/new" />
+        <entry key="0425fa9d-d9b0-47e1-81a7-1ecf2ded69f4" value="/sessions/ee082729-7ebb-4da6-959b-6d8e25e15bd9" />
+        <entry key="4a3eb3f2-146b-465c-a125-b61a3d7066cd" value="/sessions/fbc16d8d-e5db-4c1b-aa57-3ad47bb52016" />
       </map>
     </option>
     <option name="sessionTitles">
       <map>
-        <entry key="4a3eb3f2-146b-465c-a125-b61a3d7066cd" value="Claude Code" />
-        <entry key="a71eb805-1fed-494e-9e66-ba01a576c043" value="Claude Code" />
+        <entry key="0425fa9d-d9b0-47e1-81a7-1ecf2ded69f4" value="hello" />
+        <entry key="4a3eb3f2-146b-465c-a125-b61a3d7066cd" value="can u create a java spring boot configuration for" />
       </map>
     </option>
   </component>

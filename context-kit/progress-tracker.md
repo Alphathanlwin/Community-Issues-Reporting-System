@@ -1,7 +1,7 @@
 # 10. SCIRS — Progress Tracker
 
-**Current Phase:** Phase 2 — Departments & Categories (backend complete)
-**Last Updated:** 2026-08-14
+**Current Phase:** Phase 4 — Report Submission (backend: create-report slice complete)
+**Last Updated:** 2026-08-15
 
 > Agents: read this file **before** starting work and update it **after** finishing work. Mark `[x]` only when the item is actually working, not merely written.
 
@@ -90,17 +90,17 @@
 ## Phase 4 — Report Submission
 
 ### Backend
-- [ ] `Report`, `ReportImage` entities + enums
-- [ ] `ReportRepository`, `ReportImageRepository`
-- [ ] `FileStorageService` interface
-- [ ] `LocalStorageService` implementation
-- [ ] `SupabaseStorageService` implementation
-- [ ] Image validation (type, size, magic bytes, renamed file)
-- [ ] `ReportCodeGenerator`
-- [ ] `ReportService.createReport()` (multipart)
-- [ ] `GET /api/reports/my`
-- [ ] `GET /api/reports/{id}` with ownership check
-- [ ] Tests: pending citizen blocked, validation, code uniqueness, ownership
+- [x] `Report`, `ReportImage` entities + enums (`ReportStatus`, `ReportPriority`, `ImageType`) — full column set per `database-schema.md`, including columns Phase 5 will use (`assignedStaffId`, `rejectionReason`, `approvedAt`/`approvedBy`, `resolvedAt`, `closedAt`); no Phase 5 logic touches them yet
+- [x] `ReportRepository`, `ReportImageRepository`
+- [x] `FileStorageService` interface
+- [x] `LocalStorageService` implementation (whitelist type, 5 MB limit, magic-byte check, UUID filename; served back via `WebConfig` → `/uploads/**`)
+- [ ] `SupabaseStorageService` implementation — deferred; `app.storage.provider` defaults to `local` so the app is fully functional without it, but the Supabase path from `library-docs.md`/D4 is not built
+- [x] Image validation (type, size, magic bytes, renamed file)
+- [x] `ReportCodeGenerator` (`common/util`, format `RPT-{year}-{seq}`)
+- [x] `ReportService.createReport()` (multipart: `data` JSON part + optional `images` parts)
+- [ ] `GET /api/reports/my` — not built this session (out of scope for the "citizen can submit a report" task given to this agent; see Decisions)
+- [ ] `GET /api/reports/{id}` with ownership check — same as above
+- [x] Tests: unapproved citizen blocked, unknown category rejected, unknown citizen rejected, lat/long bounds, blank title, invalid image content, image storage invoked + URL persisted, 401 unauthenticated, 403 non-citizen, 201 happy path with `PENDING_APPROVAL` + correct owner
 
 ### Frontend
 - [ ] Geolocation hook + permission-denied fallback
@@ -224,6 +224,10 @@ Append here as work proceeds, then mirror anything significant into `project-ove
 | 2026-08-13 | `AccountNotApprovedException` maps to 403, not the 400 shown in `code-standards.md`'s generic exception-handler example | `api-standards.md` explicitly documents 403 for `PENDING`/`REJECTED`/`SUSPENDED` accounts on login. `AuthService.login`/`.me` are `@Transactional(readOnly = true)` — `User.role` is lazy and `open-in-view=false`, so the mapper needs the Hibernate session still open when it reads `user.getRole()` (see BUG-01 in `docs/bug-log.md`). |
 | 2026-08-14 | `DepartmentRepository`/`CategoryRepository` expose `findByActiveTrue()`, not the `findByIsActiveTrue()` name written in `database-schema.md`'s original draft | Both entities store the flag as a field named `active` with a Java-Bean-compliant `isActive()` getter (matching `User.active`/`isActive()`). Spring Data's derived-query parser resolves the property name from the JavaBean spec (`active`), so `findByIsActiveTrue()` fails at startup with `PropertyReferenceException: No property 'isActive' found`. `database-schema.md` has been corrected to match the working method name (see BUG-02 in `docs/bug-log.md`). |
 | 2026-08-14 | `User.departmentId` stays a plain `Long` FK, not converted to `@ManyToOne(fetch = LAZY) Department`, even though `Department` now exists | The field is only populated for staff accounts, and staff creation is Phase 3 work. Converting now would touch `AuthMapper`, `DataSeeder`, and every Phase 1 test for no behavioural gain this phase. Revisit when `UserService.createStaff()` is built. |
+| 2026-08-15 | Phase 4's `POST /api/reports` (create-report) slice was built directly on top of Phase 2, skipping Phase 3 (`UserService`/`UserController` — approval queue, staff creation), which is still fully unchecked | Explicit instruction from the session's task brief, which named this exact endpoint as the deliverable and listed Phase 3/5 features as out of scope. The `accountStatus == APPROVED` gate in `ReportService.createReport()` only reads the `User.accountStatus` field seeded in Phase 1 — it does not require any Phase 3 endpoint to exist. Per `build-plan.md`'s own sequencing rule, Phase 3 must still be completed before Phase 4 is considered done; a citizen can only reach `APPROVED` today by being edited directly in the database. |
+| 2026-08-15 | `Report`/`ReportImage` entities were built matching the **full** `database-schema.md` column set (including `assignedStaffId`, `rejectionReason`, `approvedAt`/`approvedBy`, `resolvedAt`, `closedAt`, `departmentId`) rather than only the columns `createReport()` populates | `database-schema.md` is the agreed single source of truth for the `reports` table shape, and Hibernate `ddl-auto=update` generates the real table from this entity. Building a partial entity now would force a schema-affecting rewrite in Phase 5 for no reason; no Phase 5 *logic* (status transitions, assignment, workflow) was added — only the persistence columns exist, all nullable and untouched by this phase's service. |
+| 2026-08-15 | `GET /api/reports/my` and `GET /api/reports/{id}` (listed under Phase 4 in `build-plan.md`) were **not** implemented this session | The task brief scoped this session strictly to "the backend functionality necessary for an authenticated CITIZEN to submit a new community issue report" and did not list these read endpoints among the acceptance criteria. Left unchecked above rather than falsely marked done; pick up in the next Phase 4 session. |
+| 2026-08-15 | `SupabaseStorageService` (the second storage backend from `library-docs.md`/D4) was not implemented; only `LocalStorageService` exists | `app.storage.provider` defaults to `local`, so report creation with photo upload is fully functional without it, and building an untested external integration without Supabase credentials in this environment was judged out of scope for "the minimum backend functionality necessary" to submit a report. `FileStorageService` is coded to the interface so a future `SupabaseStorageService` bean can be added without touching `ReportService`. |
 
 ---
 

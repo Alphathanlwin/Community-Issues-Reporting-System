@@ -297,8 +297,8 @@ Rule: a `(user_id, report_id, reason)` triple must be unique — never award the
 |------------|----------------------|
 | `RoleRepository` | `findByName(RoleName)` |
 | `UserRepository` | `findByEmail()`, `existsByEmail()`, `existsByPhone()`, `existsByNrcNumber()`, `findByAccountStatus()`, `findByRoleName()`, `findByDepartmentId()`, `findTop10ByRoleNameOrderByCreatedAtDesc()`, `countByAccountStatus()` |
-| `DepartmentRepository` | `findByName()`, `findByIsActiveTrue()` |
-| `CategoryRepository` | `findByIsActiveTrue()`, `findByDepartmentId()` |
+| `DepartmentRepository` | `findByName()`, `findByActiveTrue()` |
+| `CategoryRepository` | `findByName()`, `findByActiveTrue()`, `findByDepartmentId()` |
 | `ReportRepository` | `findByReporterId()`, `findByStatus()`, `findByDepartmentId()`, `findByDepartmentIdAndStatus()`, `findByCategoryId()`, `findByCreatedAtBetween()`, `findByReportCode()`, `countByStatus()`, `countByDepartmentIdAndStatus()`, `findByStatusAndCreatedAtBefore()` (waiting-too-long alerts), `findByLatitudeBetweenAndLongitudeBetween()` (map bounding box) |
 | `ReportImageRepository` | `findByReportId()`, `findByReportIdAndImageType()` |
 | `ReportStatusHistoryRepository` | `findByReportIdOrderByChangedAtAsc()` |

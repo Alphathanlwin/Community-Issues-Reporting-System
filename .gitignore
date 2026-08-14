@@ -9,7 +9,7 @@
 # Editor-based HTTP Client requests
 /httpRequests/
 /.idea
-
+/.github
 # ---- Backend (Spring Boot) ----
 backend/target/
 backend/uploads/

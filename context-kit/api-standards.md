@@ -100,6 +100,25 @@ Returns the current user's profile from the JWT. Used by the frontend on page re
 
 ---
 
+## Departments & Categories Endpoints
+
+Both follow the standard CRUD pattern above at `/api/departments` and `/api/categories`.
+
+| Endpoint | Method | Role | Notes |
+|----------|--------|------|-------|
+| `/api/departments`, `/api/categories` | GET | ADMIN, STAFF, CITIZEN | List all (active and inactive) |
+| `/api/departments/{id}`, `/api/categories/{id}` | GET | ADMIN, STAFF, CITIZEN | |
+| `/api/departments`, `/api/categories` | POST | ADMIN | `CreateDepartmentDTO` / `CreateCategoryDTO` |
+| `/api/departments/{id}`, `/api/categories/{id}` | PUT | ADMIN | `UpdateDepartmentDTO` / `UpdateCategoryDTO` |
+| `/api/departments/{id}`, `/api/categories/{id}` | DELETE | ADMIN | Soft delete (`isActive = false`); returns 204 |
+
+Business rules:
+- Department and category names must be unique → duplicate name returns `409 Conflict`.
+- `CreateCategoryDTO`/`UpdateCategoryDTO.departmentId` must reference an existing, **active** department — an unknown id returns `404`, an inactive department returns `400` (`BusinessRuleException`).
+- Deleting (soft-deleting) a department does not cascade to its categories; those categories keep their `departmentId` but a new category can no longer be created against that department until it is reactivated.
+
+---
+
 ## User Management Endpoints
 
 | Endpoint | Method | Role | Purpose |

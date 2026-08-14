@@ -1,7 +1,7 @@
 # 10. SCIRS — Progress Tracker
 
-**Current Phase:** Phase 0 — Analysis & Design
-**Last Updated:** 2026-08-13
+**Current Phase:** Phase 2 — Departments & Categories (backend complete)
+**Last Updated:** 2026-08-14
 
 > Agents: read this file **before** starting work and update it **after** finishing work. Mark `[x]` only when the item is actually working, not merely written.
 
@@ -12,7 +12,6 @@
 `[ ]` Not started `[~]` In progress `[x]` Done and verified `[!]` Blocked (add a note)
 
 ---
-
 ## Phase 0 — Analysis & Design
 
 - [ ] Project proposal finalised and submitted
@@ -57,13 +56,13 @@
 ## Phase 2 — Departments & Categories
 
 ### Backend
-- [ ] `Department` entity, repository, DTOs, mapper
-- [ ] `DepartmentService` + `DepartmentController` (CRUD, soft delete)
-- [ ] `Category` entity, repository, DTOs, mapper
-- [ ] `CategoryService` + `CategoryController` (CRUD, soft delete)
-- [ ] Seed 6 departments
-- [ ] Seed default categories with department mapping
-- [ ] Tests: category requires active department, soft delete behaviour
+- [x] `Department` entity, repository, DTOs, mapper
+- [x] `DepartmentService` + `DepartmentController` (CRUD, soft delete)
+- [x] `Category` entity, repository, DTOs, mapper
+- [x] `CategoryService` + `CategoryController` (CRUD, soft delete)
+- [x] Seed 6 departments
+- [x] Seed default categories with department mapping
+- [x] Tests: category requires active department, soft delete behaviour
 
 ### Frontend
 - [ ] Departments list page
@@ -223,6 +222,8 @@ Append here as work proceeds, then mirror anything significant into `project-ove
 |------|----------|--------|
 | 2026-08-13 | `User.departmentId` is a plain `Long` FK column, not a `@ManyToOne` to `Department`, until Phase 2 | The `Department` entity doesn't exist yet; a relation can't compile against a nonexistent type. Convert to `@ManyToOne(fetch = LAZY)` once `department/entity/Department.java` is built. |
 | 2026-08-13 | `AccountNotApprovedException` maps to 403, not the 400 shown in `code-standards.md`'s generic exception-handler example | `api-standards.md` explicitly documents 403 for `PENDING`/`REJECTED`/`SUSPENDED` accounts on login. `AuthService.login`/`.me` are `@Transactional(readOnly = true)` — `User.role` is lazy and `open-in-view=false`, so the mapper needs the Hibernate session still open when it reads `user.getRole()` (see BUG-01 in `docs/bug-log.md`). |
+| 2026-08-14 | `DepartmentRepository`/`CategoryRepository` expose `findByActiveTrue()`, not the `findByIsActiveTrue()` name written in `database-schema.md`'s original draft | Both entities store the flag as a field named `active` with a Java-Bean-compliant `isActive()` getter (matching `User.active`/`isActive()`). Spring Data's derived-query parser resolves the property name from the JavaBean spec (`active`), so `findByIsActiveTrue()` fails at startup with `PropertyReferenceException: No property 'isActive' found`. `database-schema.md` has been corrected to match the working method name (see BUG-02 in `docs/bug-log.md`). |
+| 2026-08-14 | `User.departmentId` stays a plain `Long` FK, not converted to `@ManyToOne(fetch = LAZY) Department`, even though `Department` now exists | The field is only populated for staff accounts, and staff creation is Phase 3 work. Converting now would touch `AuthMapper`, `DataSeeder`, and every Phase 1 test for no behavioural gain this phase. Revisit when `UserService.createStaff()` is built. |
 
 ---
 

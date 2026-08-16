@@ -77,7 +77,7 @@ public class UserController {
     @PatchMapping("/{id}/reject")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserDTO> reject(@PathVariable Long id, @Valid @RequestBody RejectUserDTO dto) {
-        return ResponseEntity.ok(userService.reject(id, dto));
+        return ResponseEntity.ok(userService.reject(id, dto.getReason()));
     }
 
     @PatchMapping("/{id}/suspend")

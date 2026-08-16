@@ -7,8 +7,8 @@ import com.uit.scirs.common.exception.ResourceNotFoundException;
 import com.uit.scirs.common.security.CurrentUser;
 import com.uit.scirs.department.entity.Department;
 import com.uit.scirs.department.repository.DepartmentRepository;
+import com.uit.scirs.notification.service.NotificationService;
 import com.uit.scirs.user.dto.CreateStaffDTO;
-import com.uit.scirs.user.dto.RejectUserDTO;
 import com.uit.scirs.user.dto.UpdateUserDTO;
 import com.uit.scirs.user.entity.AccountStatus;
 import com.uit.scirs.user.entity.Role;
@@ -43,6 +43,7 @@ class UserServiceTest {
     @Mock DepartmentRepository departmentRepository;
     @Mock UserMapper userMapper;
     @Mock PasswordEncoder passwordEncoder;
+    @Mock NotificationService notificationService;
     @InjectMocks UserService userService;
 
     @Test
@@ -67,6 +68,7 @@ class UserServiceTest {
         assertThat(captor.getValue().getDepartmentId()).isEqualTo(2L);
         assertThat(captor.getValue().getPasswordHash()).isEqualTo("encoded-password");
         assertThat(result.getAccountStatus()).isEqualTo("APPROVED");
+        verify(notificationService).notifyAccountApproved(captor.getValue());
     }
 
     @Test
@@ -117,6 +119,7 @@ class UserServiceTest {
         UserDTO result = userService.approve(1L);
 
         assertThat(result.getAccountStatus()).isEqualTo("APPROVED");
+        verify(notificationService).notifyAccountApproved(citizen);
     }
 
     @Test
@@ -133,26 +136,23 @@ class UserServiceTest {
     @Test
     void reject_withPendingAccount_setsStatusRejected() {
         User citizen = citizen(1L, AccountStatus.PENDING);
-        RejectUserDTO dto = new RejectUserDTO();
-        dto.setReason("Invalid NRC document");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(citizen));
         when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
         when(userMapper.toDTO(any(User.class))).thenAnswer(i -> dtoFor(i.getArgument(0)));
 
-        UserDTO result = userService.reject(1L, dto);
+        UserDTO result = userService.reject(1L, "Invalid NRC document");
 
         assertThat(result.getAccountStatus()).isEqualTo("REJECTED");
+        verify(notificationService).notifyAccountRejected(citizen, "Invalid NRC document");
     }
 
     @Test
     void reject_withNonPendingAccount_throwsBusinessRuleException() {
         User citizen = citizen(1L, AccountStatus.APPROVED);
-        RejectUserDTO dto = new RejectUserDTO();
-        dto.setReason("Invalid NRC document");
         when(userRepository.findById(1L)).thenReturn(Optional.of(citizen));
 
-        assertThatThrownBy(() -> userService.reject(1L, dto))
+        assertThatThrownBy(() -> userService.reject(1L, "Invalid NRC document"))
                 .isInstanceOf(BusinessRuleException.class);
 
         verify(userRepository, never()).save(any(User.class));
@@ -226,6 +226,15 @@ class UserServiceTest {
                 .isInstanceOf(AccessDeniedException.class);
 
         verify(userRepository, never()).findById(any());
+    }
+
+    @Test
+    void getById_withUnknownId_throwsResourceNotFoundException() {
+        CurrentUser admin = new CurrentUser(1L, "admin@scirs.gov", RoleName.ADMIN, null);
+        when(userRepository.findById(5L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.getById(5L, admin))
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test

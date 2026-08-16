@@ -15,3 +15,10 @@ backend/target/
 backend/uploads/
 backend/.env
 backend/src/main/resources/application-local.properties
+
+# ---- Frontend (Vite + React) ----
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/*.tsbuildinfo

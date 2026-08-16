@@ -7,8 +7,8 @@ import com.uit.scirs.common.exception.ResourceNotFoundException;
 import com.uit.scirs.common.security.CurrentUser;
 import com.uit.scirs.department.entity.Department;
 import com.uit.scirs.department.repository.DepartmentRepository;
+import com.uit.scirs.notification.service.NotificationService;
 import com.uit.scirs.user.dto.CreateStaffDTO;
-import com.uit.scirs.user.dto.RejectUserDTO;
 import com.uit.scirs.user.dto.UpdateUserDTO;
 import com.uit.scirs.user.entity.AccountStatus;
 import com.uit.scirs.user.entity.Role;
@@ -32,17 +32,20 @@ public class UserService {
     private final DepartmentRepository departmentRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final NotificationService notificationService;
 
     public UserService(UserRepository userRepository,
                         RoleRepository roleRepository,
                         DepartmentRepository departmentRepository,
                         UserMapper userMapper,
-                        PasswordEncoder passwordEncoder) {
+                        PasswordEncoder passwordEncoder,
+                        NotificationService notificationService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.departmentRepository = departmentRepository;
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
+        this.notificationService = notificationService;
     }
 
     @Transactional(readOnly = true)
@@ -104,7 +107,9 @@ public class UserService {
         staff.setAccountStatus(AccountStatus.APPROVED);
         staff.setDepartmentId(department.getId());
 
-        return userMapper.toDTO(userRepository.save(staff));
+        User saved = userRepository.save(staff);
+        notificationService.notifyAccountApproved(saved);
+        return userMapper.toDTO(saved);
     }
 
     @Transactional
@@ -114,17 +119,21 @@ public class UserService {
             throw new BusinessRuleException("Only pending accounts can be approved");
         }
         user.setAccountStatus(AccountStatus.APPROVED);
-        return userMapper.toDTO(userRepository.save(user));
+        User saved = userRepository.save(user);
+        notificationService.notifyAccountApproved(saved);
+        return userMapper.toDTO(saved);
     }
 
     @Transactional
-    public UserDTO reject(Long id, RejectUserDTO dto) {
+    public UserDTO reject(Long id, String reason) {
         User user = findEntity(id);
         if (user.getAccountStatus() != AccountStatus.PENDING) {
             throw new BusinessRuleException("Only pending accounts can be rejected");
         }
         user.setAccountStatus(AccountStatus.REJECTED);
-        return userMapper.toDTO(userRepository.save(user));
+        User saved = userRepository.save(user);
+        notificationService.notifyAccountRejected(saved, reason);
+        return userMapper.toDTO(saved);
     }
 
     @Transactional

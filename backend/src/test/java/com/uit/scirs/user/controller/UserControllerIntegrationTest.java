@@ -38,7 +38,7 @@ class UserControllerIntegrationTest {
 
     @Test
     void createStaff_withAdminTokenAndActiveDepartment_returns201() throws Exception {
-        String adminToken = jwtUtil.generateToken(1L, "admin@scirs.gov", RoleName.ADMIN.name(), null);
+        String adminToken = adminToken();
         long roadsId = departmentRepository.findByName("Roads").orElseThrow().getId();
 
         mockMvc.perform(post("/api/users/staff")
@@ -56,7 +56,7 @@ class UserControllerIntegrationTest {
 
     @Test
     void createStaff_withInactiveDepartment_returns400() throws Exception {
-        String adminToken = jwtUtil.generateToken(1L, "admin@scirs.gov", RoleName.ADMIN.name(), null);
+        String adminToken = adminToken();
         long buildingsId = departmentRepository.findByName("Buildings").orElseThrow().getId();
 
         mockMvc.perform(delete("/api/departments/" + buildingsId)
@@ -75,7 +75,7 @@ class UserControllerIntegrationTest {
 
     @Test
     void createStaff_withUnknownDepartment_returns404() throws Exception {
-        String adminToken = jwtUtil.generateToken(1L, "admin@scirs.gov", RoleName.ADMIN.name(), null);
+        String adminToken = adminToken();
 
         mockMvc.perform(post("/api/users/staff")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
@@ -104,7 +104,7 @@ class UserControllerIntegrationTest {
 
     @Test
     void getPending_withAdminToken_returnsOnlyPendingCitizens() throws Exception {
-        String adminToken = jwtUtil.generateToken(1L, "admin@scirs.gov", RoleName.ADMIN.name(), null);
+        String adminToken = adminToken();
         persistCitizen("pending1@example.com", AccountStatus.PENDING);
         persistCitizen("approved1@example.com", AccountStatus.APPROVED);
 
@@ -126,7 +126,7 @@ class UserControllerIntegrationTest {
 
     @Test
     void approve_pendingCitizen_returns200WithApprovedStatus() throws Exception {
-        String adminToken = jwtUtil.generateToken(1L, "admin@scirs.gov", RoleName.ADMIN.name(), null);
+        String adminToken = adminToken();
         User pending = persistCitizen("toapprove@example.com", AccountStatus.PENDING);
 
         mockMvc.perform(patch("/api/users/" + pending.getId() + "/approve")
@@ -136,8 +136,14 @@ class UserControllerIntegrationTest {
     }
 
     @Test
+    void approve_withoutAuthentication_returns401() throws Exception {
+        mockMvc.perform(patch("/api/users/1/approve"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void reject_pendingCitizenWithoutReason_returns400() throws Exception {
-        String adminToken = jwtUtil.generateToken(1L, "admin@scirs.gov", RoleName.ADMIN.name(), null);
+        String adminToken = adminToken();
         User pending = persistCitizen("toreject@example.com", AccountStatus.PENDING);
 
         mockMvc.perform(patch("/api/users/" + pending.getId() + "/reject")
@@ -150,7 +156,7 @@ class UserControllerIntegrationTest {
 
     @Test
     void reject_pendingCitizenWithReason_returns200WithRejectedStatus() throws Exception {
-        String adminToken = jwtUtil.generateToken(1L, "admin@scirs.gov", RoleName.ADMIN.name(), null);
+        String adminToken = adminToken();
         User pending = persistCitizen("toreject2@example.com", AccountStatus.PENDING);
 
         mockMvc.perform(patch("/api/users/" + pending.getId() + "/reject")
@@ -163,7 +169,7 @@ class UserControllerIntegrationTest {
 
     @Test
     void suspend_approvedCitizen_returns200WithSuspendedStatus() throws Exception {
-        String adminToken = jwtUtil.generateToken(1L, "admin@scirs.gov", RoleName.ADMIN.name(), null);
+        String adminToken = adminToken();
         User approved = persistCitizen("tosuspend@example.com", AccountStatus.APPROVED);
 
         mockMvc.perform(patch("/api/users/" + approved.getId() + "/suspend")
@@ -210,7 +216,7 @@ class UserControllerIntegrationTest {
 
     @Test
     void delete_withAdminToken_returns204AndSoftDeletes() throws Exception {
-        String adminToken = jwtUtil.generateToken(1L, "admin@scirs.gov", RoleName.ADMIN.name(), null);
+        String adminToken = adminToken();
         User citizen = persistCitizen("todelete@example.com", AccountStatus.APPROVED);
 
         mockMvc.perform(delete("/api/users/" + citizen.getId())
@@ -245,5 +251,10 @@ class UserControllerIntegrationTest {
         citizen.setAccountStatus(status);
         citizen.setActive(true);
         return userRepository.save(citizen);
+    }
+
+    private String adminToken() {
+        User admin = userRepository.findByEmail("admin@scirs.gov").orElseThrow();
+        return jwtUtil.generateToken(admin.getId(), admin.getEmail(), RoleName.ADMIN.name(), null);
     }
 }

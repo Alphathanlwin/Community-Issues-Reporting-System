@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public class RejectUserDTO {
 
-    @NotBlank(message = "Reason is required")
+    @NotBlank(message = "A rejection reason is required")
     private String reason;
 
     public String getReason() {

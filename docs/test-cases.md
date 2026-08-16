@@ -2,7 +2,7 @@
 
 Maintained per `testing-standards.md`. Automated coverage for the same
 scenarios lives in `backend/src/test/java/.../auth/`, `.../department/`,
-`.../category/`, and `.../report/`.
+`.../category/`, `.../report/`, and `.../user/`.
 
 | ID | Module | Scenario | Steps | Expected | Actual | Pass/Fail | Date |
 |----|--------|----------|-------|----------|--------|-----------|------|
@@ -37,3 +37,17 @@ scenarios lives in `backend/src/test/java/.../auth/`, `.../department/`,
 | RPT-09 | Report | Submit report as STAFF | POST `/api/reports` with a STAFF JWT | 403 | As expected | Pass | 2026-08-15 |
 | RPT-11 | Report | Submit report with an image over 5 MB | POST `/api/reports` with an `images` part larger than `spring.servlet.multipart.max-file-size` | 400 `FileStorageException` via MockMvc (a real servlet container returns 413 `MaxUploadSizeExceededException` before the request reaches the controller — not reproducible under MockMvc's simulated multipart parsing) | As expected | Pass | 2026-08-15 |
 | RPT-10 | Report | Submit report as an unapproved citizen | Call `ReportService.createReport()` for a citizen whose `accountStatus != APPROVED` | 400 `BusinessRuleException` ("not yet approved to submit reports") — service-level test; no self-service path exists yet to reach this via HTTP since Phase 3 login-gating is what normally prevents it | As expected | Pass | 2026-08-15 |
+| USR-01 | User | Create staff account (ADMIN, active department) | POST `/api/users/staff` with a valid body and an active `departmentId`, ADMIN JWT | 201, `role=STAFF`, `accountStatus=APPROVED`, `departmentId` matches | As expected | Pass | 2026-08-16 |
+| USR-02 | User | Create staff account against an inactive department | Soft-delete a department, then POST `/api/users/staff` against it | 400 `BusinessRuleException` | As expected | Pass | 2026-08-16 |
+| USR-03 | User | Create staff account against an unknown department | POST `/api/users/staff` with a non-existent `departmentId` | 404 `ResourceNotFoundException` | As expected | Pass | 2026-08-16 |
+| USR-04 | User | Create staff account (CITIZEN) | POST `/api/users/staff` with a CITIZEN JWT | 403 | As expected | Pass | 2026-08-16 |
+| USR-05 | User | Citizen approval queue | GET `/api/users/pending` as ADMIN, with one PENDING and one APPROVED citizen seeded | 200, only the PENDING citizen is present | As expected | Pass | 2026-08-16 |
+| USR-06 | User | Approve a pending citizen | PATCH `/api/users/{id}/approve` as ADMIN on a PENDING account | 200, `accountStatus=APPROVED` | As expected | Pass | 2026-08-16 |
+| USR-07 | User | Reject a pending citizen without a reason | PATCH `/api/users/{id}/reject` with `{"reason":""}` | 400, `errors.reason` present | As expected | Pass | 2026-08-16 |
+| USR-08 | User | Reject a pending citizen with a reason | PATCH `/api/users/{id}/reject` with a non-blank `reason` | 200, `accountStatus=REJECTED` | As expected | Pass | 2026-08-16 |
+| USR-09 | User | Suspend an approved account | PATCH `/api/users/{id}/suspend` as ADMIN on an APPROVED account | 200, `accountStatus=SUSPENDED` | As expected | Pass | 2026-08-16 |
+| USR-10 | User | View own profile | GET `/api/users/{id}` with a citizen's own JWT | 200, matches own record | As expected | Pass | 2026-08-16 |
+| USR-11 | User | View another citizen's profile | GET `/api/users/{id}` with a different citizen's JWT | 403 | As expected | Pass | 2026-08-16 |
+| USR-12 | User | Update own profile | PUT `/api/users/{id}` with own JWT and a new `fullName`/`phone` | 200, fields updated | As expected | Pass | 2026-08-16 |
+| USR-13 | User | Soft delete an account | DELETE `/api/users/{id}` as ADMIN, then GET the same id | 204 on delete; GET returns 200 with `active=false` | As expected | Pass | 2026-08-16 |
+| USR-14 | User | Soft delete (CITIZEN) | DELETE `/api/users/{id}` with a CITIZEN JWT | 403 | As expected | Pass | 2026-08-16 |

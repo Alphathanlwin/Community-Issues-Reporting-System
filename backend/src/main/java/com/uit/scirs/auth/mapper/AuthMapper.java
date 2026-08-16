@@ -22,6 +22,7 @@ public class AuthMapper {
         dto.setDepartmentId(entity.getDepartmentId());
         dto.setScorePoints(entity.getScorePoints());
         dto.setProfileImageUrl(entity.getProfileImageUrl());
+        dto.setActive(entity.isActive());
         dto.setCreatedAt(entity.getCreatedAt());
         return dto;
     }

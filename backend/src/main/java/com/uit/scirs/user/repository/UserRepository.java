@@ -24,6 +24,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByRoleName(RoleName roleName);
 
+    List<User> findByRoleNameAndAccountStatus(RoleName roleName, AccountStatus accountStatus);
+
     List<User> findByDepartmentId(Long departmentId);
 
     List<User> findTop10ByRoleNameOrderByCreatedAtDesc(RoleName roleName);

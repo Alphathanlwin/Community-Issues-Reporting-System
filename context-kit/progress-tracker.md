@@ -1,7 +1,7 @@
 # 10. SCIRS — Progress Tracker
 
-**Current Phase:** Phase 4 — Report Submission (backend: create-report slice complete)
-**Last Updated:** 2026-08-15
+**Current Phase:** Phase 3 — User Management & Approval Queues (backend complete) / Phase 4 — Report Submission (backend: create-report slice complete)
+**Last Updated:** 2026-08-16
 
 > Agents: read this file **before** starting work and update it **after** finishing work. Mark `[x]` only when the item is actually working, not merely written.
 
@@ -73,12 +73,12 @@
 ## Phase 3 — User Management & Approval Queues
 
 ### Backend
-- [ ] `UserService` — list/filter users
-- [ ] `UserService` — create staff account
-- [ ] `UserService` — approve / reject / suspend citizen
-- [ ] `UserService` — soft delete
-- [ ] `UserController` — all user endpoints
-- [ ] Tests: staff requires department, approval flow, role gates
+- [x] `UserService` — list/filter users (`getAll`, `getCitizens`, `getStaff`, `getPending`, `getById` with self/admin ownership check)
+- [x] `UserService` — create staff account (`createStaff`, requires an active department, forces role `STAFF` + `accountStatus APPROVED`)
+- [x] `UserService` — approve / reject / suspend citizen (each requires the current status listed in `api-standards.md`; reject validates a reason but does not persist it — see Decisions)
+- [x] `UserService` — soft delete (`isActive = false`)
+- [x] `UserController` — all endpoints from `api-standards.md` § User Management, including `GET`/`PUT /api/users/{id}` (self or admin)
+- [x] Tests: staff requires an active department (unit + integration), approval/reject/suspend flow (unit + integration), role gates (integration, 403 for non-admin/non-self)
 
 ### Frontend
 - [ ] Citizen accounts table
@@ -227,6 +227,11 @@ Append here as work proceeds, then mirror anything significant into `project-ove
 | 2026-08-15 | Phase 4's `POST /api/reports` (create-report) slice was built directly on top of Phase 2, skipping Phase 3 (`UserService`/`UserController` — approval queue, staff creation), which is still fully unchecked | Explicit instruction from the session's task brief, which named this exact endpoint as the deliverable and listed Phase 3/5 features as out of scope. The `accountStatus == APPROVED` gate in `ReportService.createReport()` only reads the `User.accountStatus` field seeded in Phase 1 — it does not require any Phase 3 endpoint to exist. Per `build-plan.md`'s own sequencing rule, Phase 3 must still be completed before Phase 4 is considered done; a citizen can only reach `APPROVED` today by being edited directly in the database. |
 | 2026-08-15 | `Report`/`ReportImage` entities were built matching the **full** `database-schema.md` column set (including `assignedStaffId`, `rejectionReason`, `approvedAt`/`approvedBy`, `resolvedAt`, `closedAt`, `departmentId`) rather than only the columns `createReport()` populates | `database-schema.md` is the agreed single source of truth for the `reports` table shape, and Hibernate `ddl-auto=update` generates the real table from this entity. Building a partial entity now would force a schema-affecting rewrite in Phase 5 for no reason; no Phase 5 *logic* (status transitions, assignment, workflow) was added — only the persistence columns exist, all nullable and untouched by this phase's service. |
 | 2026-08-15 | `GET /api/reports/my` and `GET /api/reports/{id}` (listed under Phase 4 in `build-plan.md`) were **not** implemented this session | The task brief scoped this session strictly to "the backend functionality necessary for an authenticated CITIZEN to submit a new community issue report" and did not list these read endpoints among the acceptance criteria. Left unchecked above rather than falsely marked done; pick up in the next Phase 4 session. |
+| 2026-08-16 | `UserService.approve()`/`.reject()`/`.suspend()` do not write a `notifications` row, even though `build-plan.md` calls for a "notifications stub" in Phase 3 | The `Notification` entity/repository (Phase 7 work per `progress-tracker.md`) does not exist yet, so there is no table to write to. Writing an ad-hoc notification mechanism now would invent a Phase 7 architectural layer ahead of schedule (rule 3 in `CLAUDE.md`). Revisit when `notification/entity/Notification.java` is built. |
+| 2026-08-16 | `RejectUserDTO.reason` is validated (`@NotBlank`) but not persisted anywhere on `User` | Unlike `reports.rejection_reason`, `database-schema.md`'s `users` table has no column to store an account-rejection reason — this was a deliberate omission, not an oversight (rule 1: never guess a field). The reason exists in the API contract today so the reason text is available once `NotificationService` (Phase 7) is built to embed it in the `ACCOUNT_REJECTED` notification message; until then it is validated but discarded. |
+| 2026-08-16 | `UserService.approve()`/`.reject()` require the target account to currently be `PENDING`; `.suspend()` requires `APPROVED` | Not specified in `api-standards.md`, but these are the only transitions that make sense given `AccountStatus`'s seeding rules (only citizens are ever `PENDING`; admin/staff are seeded/created directly as `APPROVED`). Chosen defensively so, e.g., an already-approved account can't be re-approved (which would silently no-op) or a rejected account suspended. |
+| 2026-08-16 | `UserDTO` (in `auth/dto/`, reused by the new `user` module) gained an `active` boolean field, populated by both `AuthMapper` and the new `UserMapper` | Needed to make `UserService.delete()` (soft delete) observable via the API — without it, an admin's citizen/staff account tables could not distinguish an active account from a soft-deleted one, mirroring the `active` field already exposed on `CategoryDTO`/`DepartmentDTO`. |
+| 2026-08-16 | `UpdateUserDTO` (self-service `PUT /api/users/{id}`) only exposes `fullName`, `phone`, `profileImageUrl` | `email`, `dateOfBirth`, and `nrcNumber` are treated as immutable identity fields not covered by any documented endpoint; changing email in particular would need separate re-verification handling that is out of scope for this phase. |
 | 2026-08-15 | `SupabaseStorageService` (the second storage backend from `library-docs.md`/D4) was not implemented; only `LocalStorageService` exists | `app.storage.provider` defaults to `local`, so report creation with photo upload is fully functional without it, and building an untested external integration without Supabase credentials in this environment was judged out of scope for "the minimum backend functionality necessary" to submit a report. `FileStorageService` is coded to the interface so a future `SupabaseStorageService` bean can be added without touching `ReportService`. |
 
 ---

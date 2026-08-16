@@ -16,6 +16,7 @@ public class UserDTO {
     private Long departmentId;
     private Integer scorePoints;
     private String profileImageUrl;
+    private boolean active;
     private LocalDateTime createdAt;
 
     public Long getId() {
@@ -104,6 +105,14 @@ public class UserDTO {
 
     public void setProfileImageUrl(String profileImageUrl) {
         this.profileImageUrl = profileImageUrl;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 
     public LocalDateTime getCreatedAt() {

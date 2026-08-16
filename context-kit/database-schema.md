@@ -296,7 +296,7 @@ Rule: a `(user_id, report_id, reason)` triple must be unique — never award the
 | Repository | Custom Query Methods |
 |------------|----------------------|
 | `RoleRepository` | `findByName(RoleName)` |
-| `UserRepository` | `findByEmail()`, `existsByEmail()`, `existsByPhone()`, `existsByNrcNumber()`, `findByAccountStatus()`, `findByRoleName()`, `findByDepartmentId()`, `findTop10ByRoleNameOrderByCreatedAtDesc()`, `countByAccountStatus()` |
+| `UserRepository` | `findByEmail()`, `existsByEmail()`, `existsByPhone()`, `existsByNrcNumber()`, `findByAccountStatus()`, `findByRoleName()`, `findByRoleNameAndAccountStatus()`, `findByDepartmentId()`, `findTop10ByRoleNameOrderByCreatedAtDesc()`, `countByAccountStatus()` |
 | `DepartmentRepository` | `findByName()`, `findByActiveTrue()` |
 | `CategoryRepository` | `findByName()`, `findByActiveTrue()`, `findByDepartmentId()` |
 | `ReportRepository` | `findByReporterId()`, `findByStatus()`, `findByDepartmentId()`, `findByDepartmentIdAndStatus()`, `findByCategoryId()`, `findByCreatedAtBetween()`, `findByReportCode()`, `countByStatus()`, `countByDepartmentIdAndStatus()`, `findByStatusAndCreatedAtBefore()` (waiting-too-long alerts), `findByLatitudeBetweenAndLongitudeBetween()` (map bounding box) |

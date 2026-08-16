@@ -134,6 +134,40 @@ Business rules:
 | `/api/users/{id}` | GET / PUT | ADMIN, self | View / update profile |
 | `/api/users/{id}` | DELETE | ADMIN | Soft delete (`isActive = false`) |
 
+`GET /api/users` accepts optional `role` and `accountStatus` query filters (combine with AND, same as the report list).
+
+### `POST /api/users/staff` — create a staff account (ADMIN)
+
+```json
+{
+  "fullName": "Thida Win",
+  "email": "thida.win@scirs.gov",
+  "phone": "+959123456780",
+  "password": "securePass123",
+  "departmentId": 2
+}
+```
+
+Always creates the account with `role = STAFF` and `accountStatus = APPROVED` immediately. `departmentId` must reference an existing, **active** department (unknown → `404`, inactive → `400`).
+
+### `PATCH /api/users/{id}/reject`
+
+```json
+{ "reason": "NRC document image is illegible" }
+```
+
+`reason` is required for validation but is not currently persisted on the `users` table (see `database-schema.md` — there is no `rejection_reason` column, unlike `reports`). It is captured in the request contract now so it is available once the Phase 7 `NotificationService` embeds it in the `ACCOUNT_REJECTED` notification message.
+
+`approve` / `reject` require the target account to currently be `PENDING`; `suspend` requires it to currently be `APPROVED`. Any other starting status returns `400 BusinessRuleException`.
+
+### `PUT /api/users/{id}` — update own profile (ADMIN or self)
+
+```json
+{ "fullName": "Thida Win", "phone": "+959123456780", "profileImageUrl": "https://.../avatar.jpg" }
+```
+
+`email`, `dateOfBirth`, and `nrcNumber` are not editable through this endpoint.
+
 ---
 
 ## Report Endpoints

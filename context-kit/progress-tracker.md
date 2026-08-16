@@ -1,7 +1,7 @@
 # 10. SCIRS — Progress Tracker
 
-**Current Phase:** Phase 4 — Report Submission (backend: create-report slice complete)
-**Last Updated:** 2026-08-15
+**Current Phase:** Phase 7 — Notifications, Feedback & Gamification (backend + frontend complete), built on a minimal Phase 3/Phase 5 backend slice; Phase 1–3/5/6 frontend and the rest of Phase 5 backend remain
+**Last Updated:** 2026-08-16
 
 > Agents: read this file **before** starting work and update it **after** finishing work. Mark `[x]` only when the item is actually working, not merely written.
 
@@ -24,7 +24,7 @@
 - [ ] Git repository + branch strategy
 - [ ] PostgreSQL database created and reachable
 - [x] Spring Boot project scaffolded with dependencies
-- [ ] React + TypeScript + Tailwind + shadcn/ui scaffolded
+- [x] React + TypeScript + Tailwind + shadcn/ui scaffolded
 
 ## Phase 1 — Foundation & Authentication
 
@@ -45,13 +45,13 @@
 - [x] Tests: login success/failure, pending block, 401 without token, 403 wrong role
 
 ### Frontend
-- [ ] API client with JWT injection + 401 handling
-- [ ] `AuthContext` + token storage
-- [ ] Login page
+- [x] API client with JWT injection + 401 handling
+- [x] `AuthContext` + token storage
+- [x] Login page
 - [ ] Citizen registration page
-- [ ] `ProtectedRoute` + role-based shell routing
-- [ ] `CitizenShell` skeleton (bottom tabs)
-- [ ] `ConsoleShell` skeleton (navbar + sidebar)
+- [x] `ProtectedRoute` + role-based shell routing
+- [x] `CitizenShell` skeleton (bottom tabs)
+- [x] `ConsoleShell` skeleton (navbar + sidebar)
 
 ## Phase 2 — Departments & Categories
 
@@ -73,19 +73,19 @@
 ## Phase 3 — User Management & Approval Queues
 
 ### Backend
-- [ ] `UserService` — list/filter users
-- [ ] `UserService` — create staff account
-- [ ] `UserService` — approve / reject / suspend citizen
-- [ ] `UserService` — soft delete
-- [ ] `UserController` — all user endpoints
-- [ ] Tests: staff requires department, approval flow, role gates
+- [x] `UserService` — list/filter users
+- [x] `UserService` — create staff account
+- [x] `UserService` — approve / reject / suspend citizen
+- [x] `UserService` — soft delete
+- [x] `UserController` — all user endpoints
+- [x] Tests: staff requires department, approval flow, role gates
 
 ### Frontend
 - [ ] Citizen accounts table
 - [ ] Staff accounts table
 - [ ] Create new staff form
 - [ ] Account approval queue (approve / deny)
-- [ ] Citizen profile page (view + edit)
+- [ ] Citizen profile page (view + edit) — a read-only self profile page (`pages/citizen/ProfilePage.tsx`) exists, but not the admin-facing view/edit-any-citizen page this item describes
 
 ## Phase 4 — Report Submission
 
@@ -98,34 +98,34 @@
 - [x] Image validation (type, size, magic bytes, renamed file)
 - [x] `ReportCodeGenerator` (`common/util`, format `RPT-{year}-{seq}`)
 - [x] `ReportService.createReport()` (multipart: `data` JSON part + optional `images` parts)
-- [ ] `GET /api/reports/my` — not built this session (out of scope for the "citizen can submit a report" task given to this agent; see Decisions)
-- [ ] `GET /api/reports/{id}` with ownership check — same as above
+- [x] `GET /api/reports/my`
+- [x] `GET /api/reports/{id}` with ownership check
 - [x] Tests: unapproved citizen blocked, unknown category rejected, unknown citizen rejected, lat/long bounds, blank title, invalid image content, image storage invoked + URL persisted, 401 unauthenticated, 403 non-citizen, 201 happy path with `PENDING_APPROVAL` + correct owner
 
 ### Frontend
 - [ ] Geolocation hook + permission-denied fallback
 - [ ] Report submission form (location, category, chips, description, photo)
 - [ ] Image preview + remove
-- [ ] Citizen home page with recent reports
+- [x] Citizen home page with recent reports (also the anchor point for the Phase 7 feedback form on resolved reports)
 - [ ] Citizen report detail page
 
 ## Phase 5 — Approval, Routing & Workflow
 
 ### Backend
-- [ ] `ReportStatusHistory` entity + repository
-- [ ] `ReportComment` entity + repository
-- [ ] `StatusHistoryService`
-- [ ] `ReportWorkflowService` — transition matrix
-- [ ] Approve endpoint (auto-route + history + notification stub)
-- [ ] Reject endpoint (reason required)
-- [ ] Status change endpoint (remarks)
-- [ ] Resolution-photo requirement before RESOLVED
-- [ ] `ReportAssignmentService` — reassign department / assign staff
-- [ ] Priority endpoint
-- [ ] History endpoint
-- [ ] Comments endpoints (+ department mention)
-- [ ] Department scoping for staff queries
-- [ ] Tests: full transition matrix, history per change, department scoping
+- [x] `ReportStatusHistory` entity + repository
+- [ ] `ReportComment` entity + repository — not needed by any Phase 7 trigger; deferred with `ReportAssignmentService`/priority/comments below
+- [x] `StatusHistoryService`
+- [x] `ReportWorkflowService` — transition matrix
+- [x] Approve endpoint (auto-route + history + a **real** notification, not a stub — `NotificationService` now exists)
+- [x] Reject endpoint (reason required)
+- [x] Status change endpoint (remarks)
+- [x] Resolution-photo requirement before RESOLVED
+- [ ] `ReportAssignmentService` — reassign department / assign staff — out of scope this session (not a Phase 7 dependency); department is still auto-routed on approval
+- [ ] Priority endpoint — out of scope this session, same reason
+- [x] History endpoint
+- [ ] Comments endpoints (+ department mention) — depends on the `ReportComment` entity above, not built
+- [x] Department scoping for staff queries (`ReportService.getReports`, `ReportWorkflowService.assertStaffOwnsDepartment`)
+- [x] Tests: full transition matrix (parameterised), history per change, department scoping
 
 ### Frontend
 - [ ] Console reports list (search, filters, pagination)
@@ -159,24 +159,24 @@
 ## Phase 7 — Notifications, Feedback & Gamification
 
 ### Backend
-- [ ] `Notification` entity, repository, DTOs, mapper
-- [ ] `NotificationService` + triggers for every event type
-- [ ] Notification endpoints (list, unread count, mark read, mark all)
-- [ ] `@Scheduled` "waiting too long" sweeper
-- [ ] `EmailService` (`@Async`, failure-tolerant)
-- [ ] `Feedback` entity, repository, DTOs, mapper, service, controller
-- [ ] `PointTransaction` entity + repository
-- [ ] `ScoreService` — idempotent awards + cached total
-- [ ] Leaderboard query + controller
-- [ ] Score awards wired into approve / reject / resolve / feedback
-- [ ] Tests: duplicate-award prevention, feedback constraints, leaderboard order
+- [x] `Notification` entity, repository, DTOs, mapper
+- [x] `NotificationService` + triggers for every event type reachable from what's built (new report, status change incl. approve/reject/resolve, account approved/rejected, waiting-too-long); `URGENT_REPORT` and `DEPARTMENT_MENTION` triggers are wired in the `NotificationType` enum but have no caller yet since priority and comments aren't built (see Phase 5 notes)
+- [x] Notification endpoints (list, unread count, mark read, mark all)
+- [x] `@Scheduled` "waiting too long" sweeper (`ReportService.sweepWaitingTooLong`, hourly, `app.sla.waiting-too-long-hours`, guarded against duplicate alerts)
+- [x] `EmailService` (`@Async`, failure-tolerant, gated by `app.mail.enabled`)
+- [x] `Feedback` entity, repository, DTOs, mapper, service, controller
+- [x] `PointTransaction` entity + repository
+- [x] `ScoreService` — idempotent awards + cached total (points-per-reason centralised in `ScoreService.POINTS_BY_REASON`, callers only pass the reason)
+- [x] Leaderboard query + controller
+- [x] Score awards wired into approve / reject / resolve / feedback
+- [x] Tests: duplicate-award prevention, feedback constraints, leaderboard order, plus a full `approve → status → resolve → feedback` integration test asserting the exact point total and notification count
 
 ### Frontend
-- [ ] Notification bell + unread badge
-- [ ] Notification list page (mark read)
-- [ ] Feedback form on resolved reports
-- [ ] Leaderboard page (own row pinned)
-- [ ] Score page + point history
+- [x] Notification bell + unread badge (60 s poll)
+- [x] Notification list page (mark read / mark all read)
+- [x] Feedback form on resolved reports (`components/feedback/FeedbackForm.tsx`, surfaced from the citizen Home page's recent-reports list)
+- [x] Leaderboard page (own row highlighted, with a fallback message when not yet ranked)
+- [x] Score page + point history
 
 ## Phase 8 — Dashboards & Analytics
 
@@ -228,6 +228,10 @@ Append here as work proceeds, then mirror anything significant into `project-ove
 | 2026-08-15 | `Report`/`ReportImage` entities were built matching the **full** `database-schema.md` column set (including `assignedStaffId`, `rejectionReason`, `approvedAt`/`approvedBy`, `resolvedAt`, `closedAt`, `departmentId`) rather than only the columns `createReport()` populates | `database-schema.md` is the agreed single source of truth for the `reports` table shape, and Hibernate `ddl-auto=update` generates the real table from this entity. Building a partial entity now would force a schema-affecting rewrite in Phase 5 for no reason; no Phase 5 *logic* (status transitions, assignment, workflow) was added — only the persistence columns exist, all nullable and untouched by this phase's service. |
 | 2026-08-15 | `GET /api/reports/my` and `GET /api/reports/{id}` (listed under Phase 4 in `build-plan.md`) were **not** implemented this session | The task brief scoped this session strictly to "the backend functionality necessary for an authenticated CITIZEN to submit a new community issue report" and did not list these read endpoints among the acceptance criteria. Left unchecked above rather than falsely marked done; pick up in the next Phase 4 session. |
 | 2026-08-15 | `SupabaseStorageService` (the second storage backend from `library-docs.md`/D4) was not implemented; only `LocalStorageService` exists | `app.storage.provider` defaults to `local`, so report creation with photo upload is fully functional without it, and building an untested external integration without Supabase credentials in this environment was judged out of scope for "the minimum backend functionality necessary" to submit a report. `FileStorageService` is coded to the interface so a future `SupabaseStorageService` bean can be added without touching `ReportService`. |
+| 2026-08-16 | Phase 7 (Notifications, Feedback, Gamification) was built on top of only a **minimal slice** of Phase 3 (`UserService`/`UserController` — no admin UI) and Phase 5 (`ReportWorkflowService` covering approve/reject/status/history, but not assignment, priority, or comments) rather than those phases being fully completed first | `build-plan.md`'s own sequencing rule ("never start a phase while the previous has unchecked items … unless the user explicitly says to") was explicitly overridden by the user for this session, scoped to exactly the prerequisites Phase 7's triggers genuinely depend on: an approval flow so accounts exist, and a workflow so a report can actually reach `RESOLVED`. Manual department/staff reassignment, priority, and internal comments are not touched by any Phase 7 code path and were left for a dedicated Phase 5 session. |
+| 2026-08-16 | `/frontend` was scaffolded from scratch this session (Vite + React 19 + TypeScript + Tailwind + shadcn/ui, hand-configured rather than via the interactive CLI) and only the routes/pages needed to reach the Phase 7 UI were built (login, both shells, Home with recent reports + feedback, leaderboard, score, notifications, settings/profile) | Same session-scoping decision as above. Registration, the report submission flow, the map, and the full admin/staff consoles remain future-phase work; their nav entries are intentionally omitted (console sidebar) or point to an explicit "coming soon" placeholder (citizen Map/Report tabs) rather than a dead link, per `ui-rules.md`'s "never render a link the user cannot open." |
+| 2026-08-16 | `ScoreService.award(user, reason, report)` takes no `points` parameter — the reason→points mapping (`+10`/`+20`/`+5`/`−5`) lives in a single `POINTS_BY_REASON` map inside `ScoreService`, not at each of the four call sites | `testing-standards.md`'s own `ReportWorkflowServiceTest` example calls `scoreService.award(reporter, PointReason.REPORT_APPROVED, report)` — no points argument — which is also safer: a caller passing the wrong literal for a reason was a real risk with the original 4-arg signature. |
+| 2026-08-16 | Backend tests must be run with `JAVA_HOME` pointed at a JDK 21 install (e.g. `ms-21.0.12`), not whatever `mvn` resolves by default | This machine's Homebrew Maven install pulled in OpenJDK 26 as a dependency; Mockito's inline mock maker (bundled with this Spring Boot 3.3.4 / Mockito version) cannot instrument classes under JDK 26, producing `MockitoException: Cannot modify class` failures unrelated to any test's own logic. The project's own `java.version` is 21, and a JDK 21 install already existed on this machine at `/Users/thantthadar/Library/Java/JavaVirtualMachines/ms-21.0.12`. |
 
 ---
 

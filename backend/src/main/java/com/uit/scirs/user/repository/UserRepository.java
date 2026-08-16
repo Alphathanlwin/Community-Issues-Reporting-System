@@ -3,6 +3,7 @@ package com.uit.scirs.user.repository;
 import com.uit.scirs.user.entity.AccountStatus;
 import com.uit.scirs.user.entity.RoleName;
 import com.uit.scirs.user.entity.User;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -29,4 +30,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findTop10ByRoleNameOrderByCreatedAtDesc(RoleName roleName);
 
     long countByAccountStatus(AccountStatus accountStatus);
+
+    // Leaderboard ranking: highest score first, ties broken by earliest join date.
+    List<User> findByRoleNameOrderByScorePointsDescCreatedAtAsc(RoleName roleName, Pageable pageable);
 }

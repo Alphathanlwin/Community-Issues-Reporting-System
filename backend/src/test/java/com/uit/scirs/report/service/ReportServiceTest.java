@@ -5,7 +5,9 @@ import com.uit.scirs.category.repository.CategoryRepository;
 import com.uit.scirs.common.exception.BusinessRuleException;
 import com.uit.scirs.common.exception.ResourceNotFoundException;
 import com.uit.scirs.common.integration.FileStorageService;
+import com.uit.scirs.common.security.CurrentUser;
 import com.uit.scirs.common.util.ReportCodeGenerator;
+import com.uit.scirs.notification.service.NotificationService;
 import com.uit.scirs.report.dto.CreateReportDTO;
 import com.uit.scirs.report.dto.ReportDTO;
 import com.uit.scirs.report.entity.Report;
@@ -13,7 +15,9 @@ import com.uit.scirs.report.entity.ReportImage;
 import com.uit.scirs.report.entity.ReportStatus;
 import com.uit.scirs.report.mapper.ReportMapper;
 import com.uit.scirs.report.repository.ReportRepository;
+import com.uit.scirs.report.repository.ReportStatusHistoryRepository;
 import com.uit.scirs.user.entity.AccountStatus;
+import com.uit.scirs.user.entity.RoleName;
 import com.uit.scirs.user.entity.User;
 import com.uit.scirs.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -23,6 +27,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
@@ -42,11 +47,13 @@ import static org.mockito.Mockito.when;
 class ReportServiceTest {
 
     @Mock ReportRepository reportRepository;
+    @Mock ReportStatusHistoryRepository reportStatusHistoryRepository;
     @Mock CategoryRepository categoryRepository;
     @Mock UserRepository userRepository;
     @Mock ReportMapper reportMapper;
     @Mock FileStorageService fileStorageService;
     @Mock ReportCodeGenerator reportCodeGenerator;
+    @Mock NotificationService notificationService;
     @InjectMocks ReportService reportService;
 
     @Test
@@ -84,6 +91,7 @@ class ReportServiceTest {
         assertThat(captor.getValue().getReporter()).isEqualTo(citizen);
         assertThat(captor.getValue().getCategory()).isEqualTo(category);
         assertThat(captor.getValue().getStatus()).isEqualTo(ReportStatus.PENDING_APPROVAL);
+        verify(notificationService).notifyNewReport(captor.getValue());
     }
 
     @Test
@@ -154,6 +162,58 @@ class ReportServiceTest {
         assertThat(savedImages).hasSize(1);
         assertThat(savedImages.get(0).getImageUrl()).isEqualTo("/uploads/reports/generated.jpg");
         assertThat(savedImages.get(0).getUploadedBy()).isEqualTo(citizen);
+    }
+
+    @Test
+    void getReportById_whenCitizenRequestsAnotherCitizensReport_throwsAccessDeniedException() {
+        User owner = approvedCitizen(7L);
+        Report report = new Report();
+        report.setId(1L);
+        report.setReporter(owner);
+        report.setStatus(ReportStatus.PENDING_APPROVAL);
+
+        when(reportRepository.findById(1L)).thenReturn(Optional.of(report));
+
+        CurrentUser otherCitizen = new CurrentUser(99L, "other@example.com", RoleName.CITIZEN, null);
+
+        assertThatThrownBy(() -> reportService.getReportById(1L, otherCitizen))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void getReportById_whenStaffFromAnotherDepartment_throwsAccessDeniedException() {
+        Report report = reportWithDepartment(1L, 2L);
+
+        when(reportRepository.findById(1L)).thenReturn(Optional.of(report));
+
+        CurrentUser staffFromOtherDept = new CurrentUser(50L, "staff@example.com", RoleName.STAFF, 3L);
+
+        assertThatThrownBy(() -> reportService.getReportById(1L, staffFromOtherDept))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void uploadCompletionPhotos_withNoImages_throwsBusinessRuleException() {
+        Report report = reportWithDepartment(1L, 2L);
+        when(reportRepository.findById(1L)).thenReturn(Optional.of(report));
+
+        CurrentUser staff = new CurrentUser(50L, "staff@example.com", RoleName.STAFF, 2L);
+
+        assertThatThrownBy(() -> reportService.uploadCompletionPhotos(1L, List.of(), staff))
+                .isInstanceOf(BusinessRuleException.class);
+
+        verify(reportRepository, never()).save(any(Report.class));
+    }
+
+    private Report reportWithDepartment(Long reportId, Long departmentId) {
+        com.uit.scirs.department.entity.Department department = new com.uit.scirs.department.entity.Department();
+        department.setId(departmentId);
+        Report report = new Report();
+        report.setId(reportId);
+        report.setDepartment(department);
+        report.setStatus(ReportStatus.ASSIGNED);
+        report.setReporter(approvedCitizen(7L));
+        return report;
     }
 
     private User approvedCitizen(Long id) {

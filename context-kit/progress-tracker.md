@@ -1,7 +1,7 @@
 # 10. SCIRS — Progress Tracker
 
-**Current Phase:** Phase 3 — User Management & Approval Queues (backend complete, now wired to real account-approved/rejected notifications) and Phase 7 — Notifications, Feedback & Gamification (backend + frontend complete) have merged onto `main`. Phase 4 (create-report backend slice) and most of Phase 5 (approve/reject/status workflow) are also in; Phase 5 assignment/priority/comments, and the Phase 1–3/5/6 console frontend, remain.
-**Last Updated:** 2026-08-16
+**Current Phase:** Phase 6 — Map & Filtering (backend map endpoint complete). Phase 3 — User Management & Approval Queues (backend complete, now wired to real account-approved/rejected notifications) and Phase 7 — Notifications, Feedback & Gamification (backend + frontend complete) have merged onto `main`. Phase 4 (create-report backend slice) and most of Phase 5 (approve/reject/status workflow) are also in; Phase 5 assignment/priority/comments, Phase 6 frontend map UI, and the Phase 1–3/5/6 console frontend, remain.
+**Last Updated:** 2026-08-17
 
 > Agents: read this file **before** starting work and update it **after** finishing work. Mark `[x]` only when the item is actually working, not merely written.
 
@@ -141,10 +141,11 @@
 ## Phase 6 — Map & Filtering
 
 ### Backend
-- [ ] `ReportMapDTO` slim projection
-- [ ] `GET /api/reports/map` with filters + bounding box
-- [ ] Citizen visibility rule (no pending/rejected pins)
-- [ ] Indexes on coordinates and status
+- [x] `ReportMapDTO` slim projection (`id`, `reportCode`, `latitude`, `longitude`, `categoryName`, `categoryColor`, `status`, `priority`, `createdAt` — matches `api-standards.md`'s documented shape exactly)
+- [x] `GET /api/reports/map` with `categoryId`, `status`, and `minLat`/`maxLat`/`minLng`/`maxLng` bounding-box filters, all optional
+- [x] Citizen visibility rule — `ReportService.getMapPins()` excludes `PENDING_APPROVAL` and `REJECTED` when the caller is `CITIZEN`; ADMIN/STAFF see every status
+- [x] Indexes on coordinates and status (`@Table(indexes = ...)` on `Report`: `idx_reports_status` on `status`, `idx_reports_coordinates` composite on `(latitude, longitude)`)
+- [x] Tests: citizen visibility rule (unit + integration), admin sees all statuses, bounding-box filter, status filter, slim payload shape, unauthenticated → 401
 
 ### Frontend
 - [ ] Shared `ReportMap` component (Leaflet)
@@ -237,6 +238,7 @@ Append here as work proceeds, then mirror anything significant into `project-ove
 | 2026-08-16 | `/frontend` was scaffolded from scratch this session (Vite + React 19 + TypeScript + Tailwind + shadcn/ui, hand-configured rather than via the interactive CLI) and only the routes/pages needed to reach the Phase 7 UI were built (login, both shells, Home with recent reports + feedback, leaderboard, score, notifications, settings/profile) | Same session-scoping decision as above. Registration, the report submission flow, the map, and the full admin/staff consoles remain future-phase work; their nav entries are intentionally omitted (console sidebar) or point to an explicit "coming soon" placeholder (citizen Map/Report tabs) rather than a dead link, per `ui-rules.md`'s "never render a link the user cannot open." |
 | 2026-08-16 | `ScoreService.award(user, reason, report)` takes no `points` parameter — the reason→points mapping (`+10`/`+20`/`+5`/`−5`) lives in a single `POINTS_BY_REASON` map inside `ScoreService`, not at each of the four call sites | `testing-standards.md`'s own `ReportWorkflowServiceTest` example calls `scoreService.award(reporter, PointReason.REPORT_APPROVED, report)` — no points argument — which is also safer: a caller passing the wrong literal for a reason was a real risk with the original 4-arg signature. |
 | 2026-08-16 | Backend tests must be run with `JAVA_HOME` pointed at a JDK 21 install (e.g. `ms-21.0.12`), not whatever `mvn` resolves by default | This machine's Homebrew Maven install pulled in OpenJDK 26 as a dependency; Mockito's inline mock maker (bundled with this Spring Boot 3.3.4 / Mockito version) cannot instrument classes under JDK 26, producing `MockitoException: Cannot modify class` failures unrelated to any test's own logic. The project's own `java.version` is 21, and a JDK 21 install already existed on this machine at `/Users/thantthadar/Library/Java/JavaVirtualMachines/ms-21.0.12`. |
+| 2026-08-17 | Phase 6's map endpoint (`ReportMapDTO`, `GET /api/reports/map`, citizen visibility rule, indexes) was built without first finishing the remaining Phase 5 items (`ReportComment`/`ReportAssignmentService`/priority endpoint) or any Phase 1–3/5/6 console frontend | Explicit user instruction, scoped to exactly the four Phase 6 backend checklist items already fully specified in `database-schema.md` (composite `(latitude, longitude)` index) and `api-standards.md` (the exact `/api/reports/map` request/response shape was already documented, unchanged by this work). The map query only reads `Report.status`/`category`/`latitude`/`longitude`, none of which depend on assignment, priority, or comments. `findForMap()` always passes a non-empty `hiddenStatuses` list (`PENDING_APPROVAL`, `REJECTED`) to the `NOT IN` clause and toggles it on/off via a `restrictToPublic` boolean, rather than passing an empty list when unrestricted — Hibernate/JPQL `NOT IN` with an empty parameter list is not a construct worth relying on for correctness. |
 | 2026-08-16 | Merged the local, fuller Phase 3 `user` module (status guards on approve/reject/suspend, dedicated `UserMapper`, phone-uniqueness check on update) with the incoming Phase 7 branch's notification wiring (`notificationService.notifyAccountApproved`/`notifyAccountRejected` on `createStaff`/`approve`/`reject`) rather than picking one side wholesale; method names (`getAll`, `getById`, `update`, `delete`, …) were resolved to match the `getAll`/`getById`/`update`/`delete` convention already established by `DepartmentController`/`CategoryController`, and `UserController.reject()` now extracts the reason string from `RejectUserDTO` before calling the service, matching `ReportController.reject()`'s existing pattern | This supersedes the 2026-08-16 decision above stating `approve()`/`.reject()`/`.suspend()` write no notification — `Notification`/`NotificationService` arrived with the merged Phase 7 branch, so the blocker no longer applies. `RejectUserDTO.reason` is still not persisted to a `User` column (per that same earlier decision), but it is now used transiently as the `notifyAccountRejected` message. |
 
 ---

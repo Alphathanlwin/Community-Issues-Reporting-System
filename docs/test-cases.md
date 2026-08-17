@@ -51,3 +51,9 @@ scenarios lives in `backend/src/test/java/.../auth/`, `.../department/`,
 | USR-12 | User | Update own profile | PUT `/api/users/{id}` with own JWT and a new `fullName`/`phone` | 200, fields updated | As expected | Pass | 2026-08-16 |
 | USR-13 | User | Soft delete an account | DELETE `/api/users/{id}` as ADMIN, then GET the same id | 204 on delete; GET returns 200 with `active=false` | As expected | Pass | 2026-08-16 |
 | USR-14 | User | Soft delete (CITIZEN) | DELETE `/api/users/{id}` with a CITIZEN JWT | 403 | As expected | Pass | 2026-08-16 |
+| MAP-01 | Report Map | Citizen visibility rule | GET `/api/reports/map` as CITIZEN with PENDING_APPROVAL, REJECTED, and ASSIGNED reports seeded | 200, only the ASSIGNED pin is present | As expected | Pass | 2026-08-17 |
+| MAP-02 | Report Map | Admin sees every status | GET `/api/reports/map` as ADMIN with a PENDING_APPROVAL report seeded | 200, the PENDING_APPROVAL pin is present | As expected | Pass | 2026-08-17 |
+| MAP-03 | Report Map | Slim payload shape | GET `/api/reports/map` as CITIZEN | 200, each pin has `reportCode`, `categoryName`, `status` | As expected | Pass | 2026-08-17 |
+| MAP-04 | Report Map | Bounding-box filter | GET `/api/reports/map?minLat=&maxLat=&minLng=&maxLng=` with one pin inside and one outside the box | 200, only the in-bounds pin is present | As expected | Pass | 2026-08-17 |
+| MAP-05 | Report Map | Status filter | GET `/api/reports/map?status=ASSIGNED` with an ASSIGNED and an IN_PROGRESS report seeded | 200, only the ASSIGNED pin is present | As expected | Pass | 2026-08-17 |
+| MAP-06 | Report Map | Unauthenticated | GET `/api/reports/map` with no `Authorization` header | 401 | As expected | Pass | 2026-08-17 |

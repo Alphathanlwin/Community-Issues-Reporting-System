@@ -10,6 +10,7 @@ import com.uit.scirs.common.util.ReportCodeGenerator;
 import com.uit.scirs.notification.service.NotificationService;
 import com.uit.scirs.report.dto.CreateReportDTO;
 import com.uit.scirs.report.dto.ReportDTO;
+import com.uit.scirs.report.dto.ReportMapDTO;
 import com.uit.scirs.report.dto.ReportStatusHistoryDTO;
 import com.uit.scirs.report.entity.ImageType;
 import com.uit.scirs.report.entity.Report;
@@ -29,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -36,6 +38,8 @@ import java.util.List;
 public class ReportService {
 
     private static final String IMAGE_FOLDER = "reports";
+    private static final List<ReportStatus> HIDDEN_FROM_CITIZENS =
+            List.of(ReportStatus.PENDING_APPROVAL, ReportStatus.REJECTED);
 
     private final ReportRepository reportRepository;
     private final ReportStatusHistoryRepository reportStatusHistoryRepository;
@@ -130,6 +134,17 @@ public class ReportService {
             effectiveDepartmentId = currentUser.getDepartmentId();
         }
         return reportMapper.toDTOList(reportRepository.search(status, categoryId, effectiveDepartmentId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReportMapDTO> getMapPins(Long categoryId, ReportStatus status,
+                                          BigDecimal minLat, BigDecimal maxLat,
+                                          BigDecimal minLng, BigDecimal maxLng,
+                                          CurrentUser currentUser) {
+        boolean restrictToPublic = currentUser.getRole() == RoleName.CITIZEN;
+        List<Report> reports = reportRepository.findForMap(categoryId, status, minLat, maxLat, minLng, maxLng,
+                restrictToPublic, HIDDEN_FROM_CITIZENS);
+        return reportMapper.toMapDTOList(reports);
     }
 
     @Transactional

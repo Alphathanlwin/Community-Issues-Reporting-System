@@ -3,6 +3,7 @@ package com.uit.scirs.report.mapper;
 import com.uit.scirs.report.dto.CreateReportDTO;
 import com.uit.scirs.report.dto.ReportDTO;
 import com.uit.scirs.report.dto.ReportImageDTO;
+import com.uit.scirs.report.dto.ReportMapDTO;
 import com.uit.scirs.report.dto.ReportStatusHistoryDTO;
 import com.uit.scirs.report.entity.Report;
 import com.uit.scirs.report.entity.ReportImage;
@@ -76,6 +77,26 @@ public class ReportMapper {
 
     public List<ReportStatusHistoryDTO> toHistoryDTOList(List<ReportStatusHistory> entities) {
         return entities.stream().map(this::toHistoryDTO).toList();
+    }
+
+    public ReportMapDTO toMapDTO(Report entity) {
+        ReportMapDTO dto = new ReportMapDTO();
+        dto.setId(entity.getId());
+        dto.setReportCode(entity.getReportCode());
+        dto.setLatitude(entity.getLatitude());
+        dto.setLongitude(entity.getLongitude());
+        dto.setStatus(entity.getStatus().name());
+        dto.setPriority(entity.getPriority().name());
+        if (entity.getCategory() != null) {
+            dto.setCategoryName(entity.getCategory().getName());
+            dto.setCategoryColor(entity.getCategory().getColorHex());
+        }
+        dto.setCreatedAt(entity.getCreatedAt());
+        return dto;
+    }
+
+    public List<ReportMapDTO> toMapDTOList(List<Report> entities) {
+        return entities.stream().map(this::toMapDTO).toList();
     }
 
     private ReportImageDTO toImageDTO(ReportImage entity) {

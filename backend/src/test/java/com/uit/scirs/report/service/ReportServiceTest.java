@@ -10,6 +10,7 @@ import com.uit.scirs.common.util.ReportCodeGenerator;
 import com.uit.scirs.notification.service.NotificationService;
 import com.uit.scirs.report.dto.CreateReportDTO;
 import com.uit.scirs.report.dto.ReportDTO;
+import com.uit.scirs.report.dto.ReportMapDTO;
 import com.uit.scirs.report.entity.Report;
 import com.uit.scirs.report.entity.ReportImage;
 import com.uit.scirs.report.entity.ReportStatus;
@@ -190,6 +191,35 @@ class ReportServiceTest {
 
         assertThatThrownBy(() -> reportService.getReportById(1L, staffFromOtherDept))
                 .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void getMapPins_asCitizen_restrictsToPublicStatuses() {
+        CurrentUser citizen = new CurrentUser(7L, "citizen@example.com", RoleName.CITIZEN, null);
+        when(reportRepository.findForMap(null, null, null, null, null, null, true,
+                List.of(ReportStatus.PENDING_APPROVAL, ReportStatus.REJECTED)))
+                .thenReturn(List.of());
+        when(reportMapper.toMapDTOList(List.of())).thenReturn(List.of());
+
+        List<ReportMapDTO> result = reportService.getMapPins(null, null, null, null, null, null, citizen);
+
+        assertThat(result).isEmpty();
+        verify(reportRepository).findForMap(null, null, null, null, null, null, true,
+                List.of(ReportStatus.PENDING_APPROVAL, ReportStatus.REJECTED));
+    }
+
+    @Test
+    void getMapPins_asAdmin_doesNotRestrictStatuses() {
+        CurrentUser admin = new CurrentUser(1L, "admin@example.com", RoleName.ADMIN, null);
+        when(reportRepository.findForMap(3L, ReportStatus.ASSIGNED, null, null, null, null, false,
+                List.of(ReportStatus.PENDING_APPROVAL, ReportStatus.REJECTED)))
+                .thenReturn(List.of());
+        when(reportMapper.toMapDTOList(List.of())).thenReturn(List.of());
+
+        reportService.getMapPins(3L, ReportStatus.ASSIGNED, null, null, null, null, admin);
+
+        verify(reportRepository).findForMap(3L, ReportStatus.ASSIGNED, null, null, null, null, false,
+                List.of(ReportStatus.PENDING_APPROVAL, ReportStatus.REJECTED));
     }
 
     @Test

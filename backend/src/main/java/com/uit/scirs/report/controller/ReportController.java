@@ -4,17 +4,21 @@ import com.uit.scirs.common.security.CurrentUser;
 import com.uit.scirs.report.dto.CreateReportDTO;
 import com.uit.scirs.report.dto.RejectReportDTO;
 import com.uit.scirs.report.dto.ReportDTO;
+import com.uit.scirs.report.dto.ReportMapDTO;
 import com.uit.scirs.report.dto.ReportStatusHistoryDTO;
 import com.uit.scirs.report.dto.UpdateReportStatusDTO;
 import com.uit.scirs.report.entity.ReportStatus;
 import com.uit.scirs.report.service.ReportService;
 import com.uit.scirs.report.service.ReportWorkflowService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,10 +30,12 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/reports")
+@Validated
 public class ReportController {
 
     private final ReportService reportService;
@@ -110,5 +116,18 @@ public class ReportController {
     public ResponseEntity<List<ReportStatusHistoryDTO>> getHistory(@PathVariable Long id,
                                                                      @AuthenticationPrincipal CurrentUser currentUser) {
         return ResponseEntity.ok(reportService.getHistory(id, currentUser));
+    }
+
+    @GetMapping("/map")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF','CITIZEN')")
+    public ResponseEntity<List<ReportMapDTO>> getMapPins(
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) ReportStatus status,
+            @RequestParam(required = false) @DecimalMin("-90.0") @DecimalMax("90.0") BigDecimal minLat,
+            @RequestParam(required = false) @DecimalMin("-90.0") @DecimalMax("90.0") BigDecimal maxLat,
+            @RequestParam(required = false) @DecimalMin("-180.0") @DecimalMax("180.0") BigDecimal minLng,
+            @RequestParam(required = false) @DecimalMin("-180.0") @DecimalMax("180.0") BigDecimal maxLng,
+            @AuthenticationPrincipal CurrentUser currentUser) {
+        return ResponseEntity.ok(reportService.getMapPins(categoryId, status, minLat, maxLat, minLng, maxLng, currentUser));
     }
 }

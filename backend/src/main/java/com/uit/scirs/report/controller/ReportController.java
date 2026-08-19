@@ -1,13 +1,19 @@
 package com.uit.scirs.report.controller;
 
 import com.uit.scirs.common.security.CurrentUser;
+import com.uit.scirs.report.dto.AssignReportDTO;
+import com.uit.scirs.report.dto.CreateReportCommentDTO;
 import com.uit.scirs.report.dto.CreateReportDTO;
 import com.uit.scirs.report.dto.RejectReportDTO;
+import com.uit.scirs.report.dto.ReportCommentDTO;
 import com.uit.scirs.report.dto.ReportDTO;
 import com.uit.scirs.report.dto.ReportMapDTO;
 import com.uit.scirs.report.dto.ReportStatusHistoryDTO;
+import com.uit.scirs.report.dto.UpdateReportPriorityDTO;
 import com.uit.scirs.report.dto.UpdateReportStatusDTO;
 import com.uit.scirs.report.entity.ReportStatus;
+import com.uit.scirs.report.service.ReportAssignmentService;
+import com.uit.scirs.report.service.ReportCommentService;
 import com.uit.scirs.report.service.ReportService;
 import com.uit.scirs.report.service.ReportWorkflowService;
 import jakarta.validation.Valid;
@@ -40,10 +46,17 @@ public class ReportController {
 
     private final ReportService reportService;
     private final ReportWorkflowService reportWorkflowService;
+    private final ReportAssignmentService reportAssignmentService;
+    private final ReportCommentService reportCommentService;
 
-    public ReportController(ReportService reportService, ReportWorkflowService reportWorkflowService) {
+    public ReportController(ReportService reportService,
+                             ReportWorkflowService reportWorkflowService,
+                             ReportAssignmentService reportAssignmentService,
+                             ReportCommentService reportCommentService) {
         this.reportService = reportService;
         this.reportWorkflowService = reportWorkflowService;
+        this.reportAssignmentService = reportAssignmentService;
+        this.reportCommentService = reportCommentService;
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -116,6 +129,35 @@ public class ReportController {
     public ResponseEntity<List<ReportStatusHistoryDTO>> getHistory(@PathVariable Long id,
                                                                      @AuthenticationPrincipal CurrentUser currentUser) {
         return ResponseEntity.ok(reportService.getHistory(id, currentUser));
+    }
+
+    @PatchMapping("/{id}/assign")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ReportDTO> assign(@PathVariable Long id, @Valid @RequestBody AssignReportDTO dto,
+                                             @AuthenticationPrincipal CurrentUser currentUser) {
+        return ResponseEntity.ok(reportAssignmentService.assign(id, dto, currentUser));
+    }
+
+    @PatchMapping("/{id}/priority")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    public ResponseEntity<ReportDTO> updatePriority(@PathVariable Long id, @Valid @RequestBody UpdateReportPriorityDTO dto,
+                                                      @AuthenticationPrincipal CurrentUser currentUser) {
+        return ResponseEntity.ok(reportWorkflowService.updatePriority(id, dto, currentUser));
+    }
+
+    @GetMapping("/{id}/comments")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    public ResponseEntity<List<ReportCommentDTO>> getComments(@PathVariable Long id,
+                                                                @AuthenticationPrincipal CurrentUser currentUser) {
+        return ResponseEntity.ok(reportCommentService.getComments(id, currentUser));
+    }
+
+    @PostMapping("/{id}/comments")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    public ResponseEntity<ReportCommentDTO> addComment(@PathVariable Long id, @Valid @RequestBody CreateReportCommentDTO dto,
+                                                         @AuthenticationPrincipal CurrentUser currentUser) {
+        ReportCommentDTO created = reportCommentService.addComment(id, dto, currentUser);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @GetMapping("/map")

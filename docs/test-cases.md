@@ -51,9 +51,26 @@ scenarios lives in `backend/src/test/java/.../auth/`, `.../department/`,
 | USR-12 | User | Update own profile | PUT `/api/users/{id}` with own JWT and a new `fullName`/`phone` | 200, fields updated | As expected | Pass | 2026-08-16 |
 | USR-13 | User | Soft delete an account | DELETE `/api/users/{id}` as ADMIN, then GET the same id | 204 on delete; GET returns 200 with `active=false` | As expected | Pass | 2026-08-16 |
 | USR-14 | User | Soft delete (CITIZEN) | DELETE `/api/users/{id}` with a CITIZEN JWT | 403 | As expected | Pass | 2026-08-16 |
+| DASH-01 | Dashboard | Admin dashboard counts | GET `/api/dashboard/admin` as ADMIN, with a PENDING citizen and a PENDING_APPROVAL report seeded | 200, `pendingAccountCount`/`pendingReportCount` include them, `reportsAwaitingApproval` non-empty | As expected | Pass | 2026-08-17 |
+| DASH-02 | Dashboard | Admin dashboard role gate | GET `/api/dashboard/admin` with a CITIZEN or STAFF JWT | 403 | As expected | Pass | 2026-08-17 |
+| DASH-03 | Dashboard | Staff dashboard scoping | GET `/api/dashboard/staff` as STAFF (Roads), with Roads-department reports in `ASSIGNED` and `RESOLVED` seeded | 200, `totalReports`/`resolvedReports`/`newReports` reflect only Roads reports, `monthlySeries` has 12 entries | As expected | Pass | 2026-08-17 |
+| DASH-04 | Dashboard | Staff dashboard role gate | GET `/api/dashboard/staff` with a CITIZEN JWT | 403 | As expected | Pass | 2026-08-17 |
+| DASH-05 | Dashboard | Department performance | GET `/api/dashboard/departments` as STAFF | 200, every seeded department present (including zero-report departments with `null` averages) | As expected | Pass | 2026-08-17 |
+| DASH-06 | Dashboard | Category volume | GET `/api/dashboard/categories` as ADMIN | 200, every seeded category present with its `reportCount` | As expected | Pass | 2026-08-17 |
+| DASH-07 | Dashboard | Departments/categories role gate | GET `/api/dashboard/departments` or `/api/dashboard/categories` with a CITIZEN JWT | 403 | As expected | Pass | 2026-08-17 |
 | MAP-01 | Report Map | Citizen visibility rule | GET `/api/reports/map` as CITIZEN with PENDING_APPROVAL, REJECTED, and ASSIGNED reports seeded | 200, only the ASSIGNED pin is present | As expected | Pass | 2026-08-17 |
 | MAP-02 | Report Map | Admin sees every status | GET `/api/reports/map` as ADMIN with a PENDING_APPROVAL report seeded | 200, the PENDING_APPROVAL pin is present | As expected | Pass | 2026-08-17 |
 | MAP-03 | Report Map | Slim payload shape | GET `/api/reports/map` as CITIZEN | 200, each pin has `reportCode`, `categoryName`, `status` | As expected | Pass | 2026-08-17 |
 | MAP-04 | Report Map | Bounding-box filter | GET `/api/reports/map?minLat=&maxLat=&minLng=&maxLng=` with one pin inside and one outside the box | 200, only the in-bounds pin is present | As expected | Pass | 2026-08-17 |
 | MAP-05 | Report Map | Status filter | GET `/api/reports/map?status=ASSIGNED` with an ASSIGNED and an IN_PROGRESS report seeded | 200, only the ASSIGNED pin is present | As expected | Pass | 2026-08-17 |
 | MAP-06 | Report Map | Unauthenticated | GET `/api/reports/map` with no `Authorization` header | 401 | As expected | Pass | 2026-08-17 |
+| RPT-12 | Report | Reassign department (ADMIN) | PATCH `/api/reports/{id}/assign` with `{"departmentId": <water>}` on an ASSIGNED Roads report | 200, `departmentId` updated, a same-status `report_status_history` row written | As expected | Pass | 2026-08-20 |
+| RPT-13 | Report | Reassign as STAFF | PATCH `/api/reports/{id}/assign` with a STAFF JWT | 403 | As expected | Pass | 2026-08-20 |
+| RPT-14 | Report | Assign staff outside the target department | `ReportAssignmentService.assign()` with a `staffId` whose `departmentId` doesn't match | 400 `BusinessRuleException` | As expected | Pass | 2026-08-20 |
+| RPT-15 | Report | Reassign a terminal report | `ReportAssignmentService.assign()` on a `CLOSED` report | 400 `BusinessRuleException` | As expected | Pass | 2026-08-20 |
+| RPT-16 | Report | Change priority (STAFF, own department) | PATCH `/api/reports/{id}/priority` with `{"priority": "URGENT"}` | 200, `priority` updated | As expected | Pass | 2026-08-20 |
+| RPT-17 | Report | Change priority as CITIZEN | PATCH `/api/reports/{id}/priority` with a CITIZEN JWT | 403 | As expected | Pass | 2026-08-20 |
+| RPT-18 | Report | Unknown priority value | `ReportWorkflowService.updatePriority()` with `priority="SUPER_URGENT"` | 400 `BusinessRuleException` | As expected | Pass | 2026-08-20 |
+| RPT-19 | Report | Add a comment with a department mention | POST `/api/reports/{id}/comments` with `mentionedDepartmentId` set, as STAFF (own department) | 201, comment persisted, every STAFF member of the mentioned department gets a `DEPARTMENT_MENTION` notification | As expected | Pass | 2026-08-20 |
+| RPT-20 | Report | Comments are department-scoped for STAFF | GET `/api/reports/{id}/comments` with a STAFF JWT from a different department | 403 | As expected | Pass | 2026-08-20 |
+| RPT-21 | Report | Comments hidden from citizens | GET `/api/reports/{id}/comments` with a CITIZEN JWT | 403 | As expected | Pass | 2026-08-20 |

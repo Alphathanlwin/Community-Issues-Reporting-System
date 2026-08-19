@@ -7,10 +7,12 @@ import com.uit.scirs.common.security.CurrentUser;
 import com.uit.scirs.department.entity.Department;
 import com.uit.scirs.notification.service.NotificationService;
 import com.uit.scirs.report.dto.ReportDTO;
+import com.uit.scirs.report.dto.UpdateReportPriorityDTO;
 import com.uit.scirs.report.dto.UpdateReportStatusDTO;
 import com.uit.scirs.report.entity.ImageType;
 import com.uit.scirs.report.entity.Report;
 import com.uit.scirs.report.entity.ReportImage;
+import com.uit.scirs.report.entity.ReportPriority;
 import com.uit.scirs.report.entity.ReportStatus;
 import com.uit.scirs.report.mapper.ReportMapper;
 import com.uit.scirs.report.repository.ReportImageRepository;
@@ -168,6 +170,58 @@ class ReportWorkflowServiceTest {
         dto.setStatus("IN_PROGRESS");
 
         assertThatThrownBy(() -> workflowService.changeStatus(10L, dto, currentUser(50L, RoleName.STAFF, 3L)))
+                .isInstanceOf(AccessDeniedException.class);
+
+        verify(reportRepository, never()).save(any(Report.class));
+    }
+
+    @Test
+    void updatePriority_withValidValue_setsPriority() {
+        Department roads = department(2L, "Roads");
+        Report report = report(10L, ReportStatus.ASSIGNED, category(1L, "Pothole", roads));
+        report.setDepartment(roads);
+
+        when(reportRepository.findById(10L)).thenReturn(Optional.of(report));
+        when(reportRepository.save(any(Report.class))).thenAnswer(i -> i.getArgument(0));
+        when(reportMapper.toDTO(any(Report.class))).thenAnswer(i -> dtoFor(i.getArgument(0)));
+
+        UpdateReportPriorityDTO dto = new UpdateReportPriorityDTO();
+        dto.setPriority("URGENT");
+
+        workflowService.updatePriority(10L, dto, currentUser(50L, RoleName.STAFF, 2L));
+
+        assertThat(report.getPriority()).isEqualTo(ReportPriority.URGENT);
+    }
+
+    @Test
+    void updatePriority_withUnknownValue_throwsBusinessRuleException() {
+        Department roads = department(2L, "Roads");
+        Report report = report(10L, ReportStatus.ASSIGNED, category(1L, "Pothole", roads));
+        report.setDepartment(roads);
+
+        when(reportRepository.findById(10L)).thenReturn(Optional.of(report));
+
+        UpdateReportPriorityDTO dto = new UpdateReportPriorityDTO();
+        dto.setPriority("SUPER_URGENT");
+
+        assertThatThrownBy(() -> workflowService.updatePriority(10L, dto, currentUser(50L, RoleName.STAFF, 2L)))
+                .isInstanceOf(BusinessRuleException.class);
+
+        verify(reportRepository, never()).save(any(Report.class));
+    }
+
+    @Test
+    void updatePriority_whenStaffFromAnotherDepartment_throwsAccessDeniedException() {
+        Department roads = department(2L, "Roads");
+        Report report = report(10L, ReportStatus.ASSIGNED, category(1L, "Pothole", roads));
+        report.setDepartment(roads);
+
+        when(reportRepository.findById(10L)).thenReturn(Optional.of(report));
+
+        UpdateReportPriorityDTO dto = new UpdateReportPriorityDTO();
+        dto.setPriority("HIGH");
+
+        assertThatThrownBy(() -> workflowService.updatePriority(10L, dto, currentUser(50L, RoleName.STAFF, 3L)))
                 .isInstanceOf(AccessDeniedException.class);
 
         verify(reportRepository, never()).save(any(Report.class));

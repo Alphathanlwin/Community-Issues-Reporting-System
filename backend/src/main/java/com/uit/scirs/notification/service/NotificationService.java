@@ -2,6 +2,7 @@ package com.uit.scirs.notification.service;
 
 import com.uit.scirs.common.exception.ResourceNotFoundException;
 import com.uit.scirs.common.integration.EmailService;
+import com.uit.scirs.department.entity.Department;
 import com.uit.scirs.notification.dto.NotificationDTO;
 import com.uit.scirs.notification.entity.Notification;
 import com.uit.scirs.notification.entity.NotificationType;
@@ -78,6 +79,15 @@ public class NotificationService {
                                 + " for longer than expected.");
             }
         }
+    }
+
+    @Transactional
+    public void notifyDepartmentMention(Report report, Department mentionedDepartment, User author) {
+        String title = "Mentioned in a report comment";
+        String message = author.getFullName() + " mentioned your department on report "
+                + report.getReportCode() + ".";
+        userRepository.findByDepartmentId(mentionedDepartment.getId())
+                .forEach(staff -> create(staff, report, NotificationType.DEPARTMENT_MENTION, title, message));
     }
 
     private void notifyDepartmentStaff(Report report, NotificationType type, String title, String message) {

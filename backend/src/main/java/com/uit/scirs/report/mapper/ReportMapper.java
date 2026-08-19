@@ -1,11 +1,13 @@
 package com.uit.scirs.report.mapper;
 
 import com.uit.scirs.report.dto.CreateReportDTO;
+import com.uit.scirs.report.dto.ReportCommentDTO;
 import com.uit.scirs.report.dto.ReportDTO;
 import com.uit.scirs.report.dto.ReportImageDTO;
 import com.uit.scirs.report.dto.ReportMapDTO;
 import com.uit.scirs.report.dto.ReportStatusHistoryDTO;
 import com.uit.scirs.report.entity.Report;
+import com.uit.scirs.report.entity.ReportComment;
 import com.uit.scirs.report.entity.ReportImage;
 import com.uit.scirs.report.entity.ReportStatusHistory;
 import org.springframework.stereotype.Component;
@@ -50,6 +52,11 @@ public class ReportMapper {
         if (entity.getReporter() != null) {
             dto.setReporterId(entity.getReporter().getId());
             dto.setReporterName(entity.getReporter().getFullName());
+        }
+
+        if (entity.getAssignedStaff() != null) {
+            dto.setAssignedStaffId(entity.getAssignedStaff().getId());
+            dto.setAssignedStaffName(entity.getAssignedStaff().getFullName());
         }
 
         dto.setImages(entity.getImages().stream().map(this::toImageDTO).toList());
@@ -97,6 +104,25 @@ public class ReportMapper {
 
     public List<ReportMapDTO> toMapDTOList(List<Report> entities) {
         return entities.stream().map(this::toMapDTO).toList();
+    }
+
+    public ReportCommentDTO toCommentDTO(ReportComment entity) {
+        ReportCommentDTO dto = new ReportCommentDTO();
+        dto.setId(entity.getId());
+        dto.setReportId(entity.getReport().getId());
+        dto.setAuthorId(entity.getAuthor().getId());
+        dto.setAuthorName(entity.getAuthor().getFullName());
+        dto.setBody(entity.getBody());
+        if (entity.getMentionedDepartment() != null) {
+            dto.setMentionedDepartmentId(entity.getMentionedDepartment().getId());
+            dto.setMentionedDepartmentName(entity.getMentionedDepartment().getName());
+        }
+        dto.setCreatedAt(entity.getCreatedAt());
+        return dto;
+    }
+
+    public List<ReportCommentDTO> toCommentDTOList(List<ReportComment> entities) {
+        return entities.stream().map(this::toCommentDTO).toList();
     }
 
     private ReportImageDTO toImageDTO(ReportImage entity) {

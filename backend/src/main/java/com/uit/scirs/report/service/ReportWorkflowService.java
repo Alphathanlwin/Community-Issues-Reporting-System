@@ -6,9 +6,11 @@ import com.uit.scirs.common.exception.ResourceNotFoundException;
 import com.uit.scirs.common.security.CurrentUser;
 import com.uit.scirs.notification.service.NotificationService;
 import com.uit.scirs.report.dto.ReportDTO;
+import com.uit.scirs.report.dto.UpdateReportPriorityDTO;
 import com.uit.scirs.report.dto.UpdateReportStatusDTO;
 import com.uit.scirs.report.entity.ImageType;
 import com.uit.scirs.report.entity.Report;
+import com.uit.scirs.report.entity.ReportPriority;
 import com.uit.scirs.report.entity.ReportStatus;
 import com.uit.scirs.report.mapper.ReportMapper;
 import com.uit.scirs.report.repository.ReportImageRepository;
@@ -149,6 +151,24 @@ public class ReportWorkflowService {
         notificationService.notifyStatusChange(saved);
 
         return reportMapper.toDTO(saved);
+    }
+
+    @Transactional
+    public ReportDTO updatePriority(Long reportId, UpdateReportPriorityDTO dto, CurrentUser currentUser) {
+        Report report = findEntity(reportId);
+        assertStaffOwnsDepartment(report, currentUser);
+
+        report.setPriority(parsePriority(dto.getPriority()));
+        Report saved = reportRepository.save(report);
+        return reportMapper.toDTO(saved);
+    }
+
+    private ReportPriority parsePriority(String priority) {
+        try {
+            return ReportPriority.valueOf(priority);
+        } catch (IllegalArgumentException ex) {
+            throw new BusinessRuleException("Unknown report priority: " + priority);
+        }
     }
 
     private void assertStaffOwnsDepartment(Report report, CurrentUser currentUser) {

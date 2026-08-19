@@ -205,6 +205,50 @@ Rejected transitions return `409 Conflict`:
 }
 ```
 
+### Assign / reassign
+
+`PATCH /api/reports/12/assign` — ADMIN only. At least one of `departmentId`/`staffId` is required; either or both may be sent.
+
+```json
+{ "departmentId": 2, "staffId": 15 }
+```
+
+Allowed only while the report is `ASSIGNED`, `IN_PROGRESS`, or `RESOLVED` (`PENDING_APPROVAL` must go through `/approve`; `REJECTED`/`CLOSED` are terminal) → otherwise `400 BusinessRuleException`. `staffId` must reference a `STAFF` account belonging to the *resulting* department (the one just set by this same call, or the report's current department if `departmentId` was omitted) → otherwise `400`. Writes a `report_status_history` row with identical `oldStatus`/`newStatus` and a remark describing what changed (per `architecture.md` § Reassignment).
+
+### Priority change
+
+`PATCH /api/reports/12/priority` — STAFF (own department only), ADMIN.
+
+```json
+{ "priority": "URGENT" }
+```
+
+Unknown priority value → `400 BusinessRuleException`. No history row is written (priority has no audit trail column, unlike status).
+
+### Comments
+
+`GET /api/reports/12/comments` / `POST /api/reports/12/comments` — ADMIN, STAFF (own department only). Never visible to citizens.
+
+```json
+{ "body": "Crew needs Water dept. to shut off the main first.", "mentionedDepartmentId": 3 }
+```
+
+Response (`ReportCommentDTO`):
+```json
+{
+  "id": 5,
+  "reportId": 12,
+  "authorId": 50,
+  "authorName": "Thida Win",
+  "body": "Crew needs Water dept. to shut off the main first.",
+  "mentionedDepartmentId": 3,
+  "mentionedDepartmentName": "Water",
+  "createdAt": "2026-08-17T09:00:00Z"
+}
+```
+
+`mentionedDepartmentId` is optional. When present, every STAFF member of that department receives a `DEPARTMENT_MENTION` notification.
+
 ### Map endpoint
 
 `GET /api/reports/map?categoryId=3&status=ASSIGNED&minLat=&maxLat=&minLng=&maxLng=`
@@ -235,7 +279,7 @@ Citizens only see reports with a status other than `PENDING_APPROVAL` and `REJEC
 | Endpoint | Method | Role | Returns |
 |----------|--------|------|---------|
 | `/api/dashboard/admin` | GET | ADMIN | Pending account count, pending report count, 10 latest registrations, latest reports awaiting approval |
-| `/api/dashboard/staff` | GET | STAFF | Total / resolved / remaining / new report counts, monthly series per department, 10 most recent reports |
+| `/api/dashboard/staff` | GET | ADMIN, STAFF | Total / resolved / remaining / new report counts, monthly series, 10 most recent reports |
 | `/api/dashboard/departments` | GET | ADMIN, STAFF | Workload and performance per department (open count, resolved count, average resolution hours, average rating) |
 | `/api/dashboard/categories` | GET | ADMIN, STAFF | Issue volume by category |
 | `/api/leaderboard` | GET | all | `[{ rank, userId, fullName, scorePoints }]`, default top 50 |
@@ -244,6 +288,61 @@ Citizens only see reports with a status other than `PENDING_APPROVAL` and `REJEC
 | `/api/notifications/unread-count` | GET | all | `{ "count": 3 }` |
 | `/api/notifications/{id}/read` | PATCH | owner | Mark one as read |
 | `/api/notifications/read-all` | PATCH | owner | Mark all as read |
+
+### `GET /api/dashboard/admin`
+
+```json
+{
+  "pendingAccountCount": 4,
+  "pendingReportCount": 6,
+  "recentRegistrations": [ /* UserDTO, newest first, top 10 citizens */ ],
+  "reportsAwaitingApproval": [ /* ReportDTO, newest first, top 10 */ ]
+}
+```
+
+### `GET /api/dashboard/staff?departmentId=2`
+
+STAFF is always scoped to the department in their own JWT (`departmentId` is ignored if a STAFF caller supplies one). ADMIN may pass `departmentId` explicitly, or omit it to aggregate across every department.
+
+`total` counts every report ever routed to the department (`ASSIGNED`/`IN_PROGRESS`/`RESOLVED`/`CLOSED` — a report only has a `department` once approved). `new` is the subset still sitting in `ASSIGNED` (routed, not yet picked up). `remaining` is `ASSIGNED` + `IN_PROGRESS`. `resolved` is `RESOLVED` + `CLOSED`.
+
+```json
+{
+  "totalReports": 42,
+  "resolvedReports": 30,
+  "remainingReports": 12,
+  "newReports": 5,
+  "monthlySeries": [ { "month": "2025-09", "count": 3 }, { "month": "2025-10", "count": 7 } /* ... 12 entries, oldest first, zero-filled */ ],
+  "recentReports": [ /* ReportDTO, newest first, top 10 */ ]
+}
+```
+
+### `GET /api/dashboard/departments`
+
+One row per department, including departments with zero reports. `averageResolutionHours` is measured `resolvedAt - approvedAt`; `averageResolutionHours`/`averageRating` are `null` (not `0`) when there is no qualifying data yet.
+
+```json
+[
+  {
+    "departmentId": 2,
+    "departmentName": "Roads",
+    "openCount": 12,
+    "resolvedCount": 30,
+    "averageResolutionHours": 18.5,
+    "averageRating": 4.2
+  }
+]
+```
+
+### `GET /api/dashboard/categories`
+
+One row per category, including categories with zero reports.
+
+```json
+[
+  { "categoryId": 2, "categoryName": "Pothole / Damaged Road", "colorHex": "#F97316", "reportCount": 57 }
+]
+```
 
 ---
 

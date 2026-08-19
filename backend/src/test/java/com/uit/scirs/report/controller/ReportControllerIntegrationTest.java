@@ -1,7 +1,13 @@
 package com.uit.scirs.report.controller;
 
+import com.uit.scirs.category.entity.Category;
 import com.uit.scirs.category.repository.CategoryRepository;
 import com.uit.scirs.common.security.JwtUtil;
+import com.uit.scirs.department.entity.Department;
+import com.uit.scirs.department.repository.DepartmentRepository;
+import com.uit.scirs.report.entity.Report;
+import com.uit.scirs.report.entity.ReportStatus;
+import com.uit.scirs.report.repository.ReportRepository;
 import com.uit.scirs.user.entity.AccountStatus;
 import com.uit.scirs.user.entity.Role;
 import com.uit.scirs.user.entity.RoleName;
@@ -13,11 +19,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -31,6 +43,8 @@ class ReportControllerIntegrationTest {
     @Autowired UserRepository userRepository;
     @Autowired RoleRepository roleRepository;
     @Autowired CategoryRepository categoryRepository;
+    @Autowired DepartmentRepository departmentRepository;
+    @Autowired ReportRepository reportRepository;
 
     @Test
     void createReport_withApprovedCitizenAndValidData_returns201WithPendingApprovalStatus() throws Exception {
@@ -178,6 +192,136 @@ class ReportControllerIntegrationTest {
         mockMvc.perform(multipart("/api/reports").file(data)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + staffToken))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void assign_withAdminAndValidDepartment_returns200AndUpdatesDepartment() throws Exception {
+        Department roads = departmentRepository.findByName("Roads").orElseThrow();
+        Department water = departmentRepository.findByName("Water").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        User reporter = persistApprovedCitizen("assign-reporter@example.com");
+        Report report = persistReport(reporter, pothole, roads, ReportStatus.ASSIGNED);
+        String adminToken = adminToken();
+
+        mockMvc.perform(patch("/api/reports/" + report.getId() + "/assign")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"departmentId\":" + water.getId() + "}")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.departmentId").value(water.getId()));
+    }
+
+    @Test
+    void assign_withStaffToken_returns403() throws Exception {
+        Department roads = departmentRepository.findByName("Roads").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        User reporter = persistApprovedCitizen("assign-reporter2@example.com");
+        Report report = persistReport(reporter, pothole, roads, ReportStatus.ASSIGNED);
+        String staffToken = jwtUtil.generateToken(1L, "staff-assign@example.com", RoleName.STAFF.name(), roads.getId());
+
+        mockMvc.perform(patch("/api/reports/" + report.getId() + "/assign")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"departmentId\":" + roads.getId() + "}")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + staffToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void priority_withStaffOwningDepartment_returns200() throws Exception {
+        Department roads = departmentRepository.findByName("Roads").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        User reporter = persistApprovedCitizen("priority-reporter@example.com");
+        Report report = persistReport(reporter, pothole, roads, ReportStatus.ASSIGNED);
+        String staffToken = jwtUtil.generateToken(1L, "staff-priority@example.com", RoleName.STAFF.name(), roads.getId());
+
+        mockMvc.perform(patch("/api/reports/" + report.getId() + "/priority")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"priority\":\"URGENT\"}")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + staffToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.priority").value("URGENT"));
+    }
+
+    @Test
+    void priority_withCitizenToken_returns403() throws Exception {
+        Department roads = departmentRepository.findByName("Roads").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        User reporter = persistApprovedCitizen("priority-reporter2@example.com");
+        Report report = persistReport(reporter, pothole, roads, ReportStatus.ASSIGNED);
+        String citizenToken = jwtUtil.generateToken(reporter.getId(), reporter.getEmail(), RoleName.CITIZEN.name(), null);
+
+        mockMvc.perform(patch("/api/reports/" + report.getId() + "/priority")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"priority\":\"HIGH\"}")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + citizenToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void comments_postThenGet_returnsTheCreatedComment() throws Exception {
+        Department roads = departmentRepository.findByName("Roads").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        User reporter = persistApprovedCitizen("comment-reporter@example.com");
+        Report report = persistReport(reporter, pothole, roads, ReportStatus.ASSIGNED);
+        String staffToken = jwtUtil.generateToken(1L, "staff-comment@example.com", RoleName.STAFF.name(), roads.getId());
+
+        mockMvc.perform(post("/api/reports/" + report.getId() + "/comments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"body\":\"Crew scheduled for tomorrow.\"}")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + staffToken))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.body").value("Crew scheduled for tomorrow."));
+
+        mockMvc.perform(get("/api/reports/" + report.getId() + "/comments")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + staffToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
+    }
+
+    @Test
+    void comments_withCitizenToken_returns403() throws Exception {
+        Department roads = departmentRepository.findByName("Roads").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        User reporter = persistApprovedCitizen("comment-reporter2@example.com");
+        Report report = persistReport(reporter, pothole, roads, ReportStatus.ASSIGNED);
+        String citizenToken = jwtUtil.generateToken(reporter.getId(), reporter.getEmail(), RoleName.CITIZEN.name(), null);
+
+        mockMvc.perform(get("/api/reports/" + report.getId() + "/comments")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + citizenToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void comments_withStaffFromAnotherDepartment_returns403() throws Exception {
+        Department roads = departmentRepository.findByName("Roads").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        User reporter = persistApprovedCitizen("comment-reporter3@example.com");
+        Report report = persistReport(reporter, pothole, roads, ReportStatus.ASSIGNED);
+        String otherStaffToken = jwtUtil.generateToken(2L, "staff-other-dept@example.com", RoleName.STAFF.name(),
+                departmentRepository.findByName("Water").orElseThrow().getId());
+
+        mockMvc.perform(get("/api/reports/" + report.getId() + "/comments")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherStaffToken))
+                .andExpect(status().isForbidden());
+    }
+
+    private String adminToken() {
+        User admin = userRepository.findByEmail("admin@scirs.gov").orElseThrow();
+        return jwtUtil.generateToken(admin.getId(), admin.getEmail(), RoleName.ADMIN.name(), null);
+    }
+
+    private Report persistReport(User reporter, Category category, Department department, ReportStatus status) {
+        Report report = new Report();
+        report.setReportCode("RPT-TEST-" + System.nanoTime());
+        report.setTitle("Test report");
+        report.setDescription("Test report description");
+        report.setCategory(category);
+        report.setDepartment(department);
+        report.setReporter(reporter);
+        report.setStatus(status);
+        report.setLatitude(new BigDecimal("16.8409000"));
+        report.setLongitude(new BigDecimal("96.1735000"));
+        return reportRepository.save(report);
     }
 
     private MockMultipartFile jsonPart(long categoryId, String latitude, String longitude) {

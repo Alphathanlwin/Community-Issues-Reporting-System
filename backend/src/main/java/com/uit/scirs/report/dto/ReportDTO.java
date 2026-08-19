@@ -21,6 +21,8 @@ public class ReportDTO {
     private String departmentName;
     private Long reporterId;
     private String reporterName;
+    private Long assignedStaffId;
+    private String assignedStaffName;
     private List<ReportImageDTO> images;
     private LocalDateTime createdAt;
 
@@ -142,6 +144,22 @@ public class ReportDTO {
 
     public void setReporterName(String reporterName) {
         this.reporterName = reporterName;
+    }
+
+    public Long getAssignedStaffId() {
+        return assignedStaffId;
+    }
+
+    public void setAssignedStaffId(Long assignedStaffId) {
+        this.assignedStaffId = assignedStaffId;
+    }
+
+    public String getAssignedStaffName() {
+        return assignedStaffName;
+    }
+
+    public void setAssignedStaffName(String assignedStaffName) {
+        this.assignedStaffName = assignedStaffName;
     }
 
     public List<ReportImageDTO> getImages() {

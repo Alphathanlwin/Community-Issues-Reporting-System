@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -42,6 +43,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/reports")
 @Validated
+@Tag(name = "Reports", description = "Submission, approval, routing, status/priority transitions, images, comments, map pins")
 public class ReportController {
 
     private final ReportService reportService;

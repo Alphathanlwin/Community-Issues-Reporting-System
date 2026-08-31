@@ -6,6 +6,7 @@ import com.uit.scirs.dashboard.dto.CategoryVolumeDTO;
 import com.uit.scirs.dashboard.dto.DepartmentPerformanceDTO;
 import com.uit.scirs.dashboard.dto.StaffDashboardDTO;
 import com.uit.scirs.dashboard.service.DashboardService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,6 +19,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/dashboard")
+@Tag(name = "Dashboard", description = "Read-only aggregates for admin and staff")
 public class DashboardController {
 
     private final DashboardService dashboardService;

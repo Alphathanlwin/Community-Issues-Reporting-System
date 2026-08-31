@@ -4,6 +4,7 @@ import com.uit.scirs.common.security.CurrentUser;
 import com.uit.scirs.feedback.dto.CreateFeedbackDTO;
 import com.uit.scirs.feedback.dto.FeedbackDTO;
 import com.uit.scirs.feedback.service.FeedbackService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/feedback")
+@Tag(name = "Feedback", description = "One rating+comment per resolved report, from its reporter")
 public class FeedbackController {
 
     private final FeedbackService feedbackService;

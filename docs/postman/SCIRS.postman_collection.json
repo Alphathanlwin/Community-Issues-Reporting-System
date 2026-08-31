@@ -1,0 +1,432 @@
+{
+  "info": {
+    "name": "SCIRS API",
+    "description": "Smart Community Issue Report System — full endpoint collection per context-kit/api-standards.md. Run \"Auth > Login (Admin)\" first: its test script captures the JWT into the {{token}} collection variable, which every other request sends as a Bearer token automatically.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "scirs-api-collection"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080/api" },
+    { "key": "token", "value": "" },
+    { "key": "reportId", "value": "1" },
+    { "key": "userId", "value": "1" },
+    { "key": "notificationId", "value": "1" },
+    { "key": "departmentId", "value": "1" },
+    { "key": "categoryId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register (Citizen, public)",
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Aung Aung\",\n  \"email\": \"aung@example.com\",\n  \"phone\": \"+959123456789\",\n  \"password\": \"securePass123\",\n  \"dateOfBirth\": \"2002-05-14\",\n  \"nrcNumber\": \"12/ABC(N)123456\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          }
+        },
+        {
+          "name": "Login (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.token) { pm.collectionVariables.set('token', body.token); }",
+                  "pm.test('login succeeded with a token', () => pm.expect(body.token).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@scirs.gov\",\n  \"password\": \"Admin@12345\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login (Staff — Electricity)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.token) { pm.collectionVariables.set('token', body.token); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"staff.electricity@scirs.gov\",\n  \"password\": \"Staff@12345\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Login (Citizen)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.token) { pm.collectionVariables.set('token', body.token); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"citizen1@example.com\",\n  \"password\": \"Citizen@12345\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Departments",
+      "item": [
+        {
+          "name": "List departments",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/departments", "host": ["{{baseUrl}}"], "path": ["departments"] } }
+        },
+        {
+          "name": "Get department by id",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/departments/{{departmentId}}", "host": ["{{baseUrl}}"], "path": ["departments", "{{departmentId}}"] } }
+        },
+        {
+          "name": "Create department (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Public Health\",\n  \"description\": \"Public health department\",\n  \"contactEmail\": \"health@scirs.gov\"\n}" },
+            "url": { "raw": "{{baseUrl}}/departments", "host": ["{{baseUrl}}"], "path": ["departments"] }
+          }
+        },
+        {
+          "name": "Update department (ADMIN)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Public Health\",\n  \"description\": \"Updated description\",\n  \"contactEmail\": \"health@scirs.gov\"\n}" },
+            "url": { "raw": "{{baseUrl}}/departments/{{departmentId}}", "host": ["{{baseUrl}}"], "path": ["departments", "{{departmentId}}"] }
+          }
+        },
+        {
+          "name": "Delete (soft) department (ADMIN)",
+          "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/departments/{{departmentId}}", "host": ["{{baseUrl}}"], "path": ["departments", "{{departmentId}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "List categories",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"] } }
+        },
+        {
+          "name": "Get category by id",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/categories/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["categories", "{{categoryId}}"] } }
+        },
+        {
+          "name": "Create category (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Noise Complaint\",\n  \"description\": \"Excessive public noise\",\n  \"departmentId\": {{departmentId}},\n  \"icon\": \"volume-2\",\n  \"colorHex\": \"#9333EA\"\n}" },
+            "url": { "raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"] }
+          }
+        },
+        {
+          "name": "Update category (ADMIN)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Noise Complaint\",\n  \"description\": \"Updated\",\n  \"departmentId\": {{departmentId}},\n  \"icon\": \"volume-2\",\n  \"colorHex\": \"#9333EA\"\n}" },
+            "url": { "raw": "{{baseUrl}}/categories/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["categories", "{{categoryId}}"] }
+          }
+        },
+        {
+          "name": "Delete (soft) category (ADMIN)",
+          "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/categories/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["categories", "{{categoryId}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "List all users (ADMIN, filters)",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/users?role=CITIZEN&accountStatus=APPROVED", "host": ["{{baseUrl}}"], "path": ["users"], "query": [{ "key": "role", "value": "CITIZEN" }, { "key": "accountStatus", "value": "APPROVED" }] } }
+        },
+        {
+          "name": "List citizens (ADMIN)",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/users/citizens", "host": ["{{baseUrl}}"], "path": ["users", "citizens"] } }
+        },
+        {
+          "name": "List staff (ADMIN)",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/users/staff", "host": ["{{baseUrl}}"], "path": ["users", "staff"] } }
+        },
+        {
+          "name": "Create staff account (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Thida Win\",\n  \"email\": \"thida.win@scirs.gov\",\n  \"phone\": \"+959123456780\",\n  \"password\": \"securePass123\",\n  \"departmentId\": {{departmentId}}\n}" },
+            "url": { "raw": "{{baseUrl}}/users/staff", "host": ["{{baseUrl}}"], "path": ["users", "staff"] }
+          }
+        },
+        {
+          "name": "Pending citizen approval queue (ADMIN)",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/users/pending", "host": ["{{baseUrl}}"], "path": ["users", "pending"] } }
+        },
+        {
+          "name": "Approve citizen account (ADMIN)",
+          "request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/users/{{userId}}/approve", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}", "approve"] } }
+        },
+        {
+          "name": "Reject citizen account (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"NRC document image is illegible\"\n}" },
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}/reject", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}", "reject"] }
+          }
+        },
+        {
+          "name": "Suspend account (ADMIN)",
+          "request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/users/{{userId}}/suspend", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}", "suspend"] } }
+        },
+        {
+          "name": "Get user by id (ADMIN or self)",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] } }
+        },
+        {
+          "name": "Update own profile (ADMIN or self)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Thida Win\",\n  \"phone\": \"+959123456780\",\n  \"profileImageUrl\": \"https://example.com/avatar.jpg\"\n}" },
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
+          }
+        },
+        {
+          "name": "Delete (soft) user (ADMIN)",
+          "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Submit report (CITIZEN, multipart)",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "data", "type": "text", "value": "{\n  \"title\": \"Streetlight out on Pyay Road\",\n  \"description\": \"The streetlight has been off for a week.\",\n  \"categoryId\": 1,\n  \"latitude\": 16.8409,\n  \"longitude\": 96.1735,\n  \"addressText\": \"Pyay Road, Kamayut\"\n}" },
+                { "key": "images", "type": "file", "src": [] }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/reports", "host": ["{{baseUrl}}"], "path": ["reports"] }
+          }
+        },
+        {
+          "name": "List all reports (ADMIN, STAFF — filters)",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/reports?status=ASSIGNED&categoryId=1&page=0&size=10", "host": ["{{baseUrl}}"], "path": ["reports"], "query": [{ "key": "status", "value": "ASSIGNED" }, { "key": "categoryId", "value": "1" }, { "key": "page", "value": "0" }, { "key": "size", "value": "10" }] } }
+        },
+        {
+          "name": "My reports (CITIZEN)",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/reports/my", "host": ["{{baseUrl}}"], "path": ["reports", "my"] } }
+        },
+        {
+          "name": "Report approval queue (ADMIN)",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/reports/pending", "host": ["{{baseUrl}}"], "path": ["reports", "pending"] } }
+        },
+        {
+          "name": "Get report by id",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/reports/{{reportId}}", "host": ["{{baseUrl}}"], "path": ["reports", "{{reportId}}"] } }
+        },
+        {
+          "name": "Approve report (ADMIN)",
+          "request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/reports/{{reportId}}/approve", "host": ["{{baseUrl}}"], "path": ["reports", "{{reportId}}", "approve"] } }
+        },
+        {
+          "name": "Reject report (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"rejectionReason\": \"Duplicate of an existing open report\"\n}" },
+            "url": { "raw": "{{baseUrl}}/reports/{{reportId}}/reject", "host": ["{{baseUrl}}"], "path": ["reports", "{{reportId}}", "reject"] }
+          }
+        },
+        {
+          "name": "Change status (STAFF, ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"IN_PROGRESS\",\n  \"remarks\": \"Crew scheduled for tomorrow morning.\"\n}" },
+            "url": { "raw": "{{baseUrl}}/reports/{{reportId}}/status", "host": ["{{baseUrl}}"], "path": ["reports", "{{reportId}}", "status"] }
+          }
+        },
+        {
+          "name": "Upload completion photo (STAFF, multipart)",
+          "request": {
+            "method": "POST",
+            "body": { "mode": "formdata", "formdata": [{ "key": "images", "type": "file", "src": [] }] },
+            "url": { "raw": "{{baseUrl}}/reports/{{reportId}}/images", "host": ["{{baseUrl}}"], "path": ["reports", "{{reportId}}", "images"] }
+          }
+        },
+        {
+          "name": "Status history",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/reports/{{reportId}}/history", "host": ["{{baseUrl}}"], "path": ["reports", "{{reportId}}", "history"] } }
+        },
+        {
+          "name": "Reassign department/staff (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"departmentId\": {{departmentId}},\n  \"staffId\": {{userId}}\n}" },
+            "url": { "raw": "{{baseUrl}}/reports/{{reportId}}/assign", "host": ["{{baseUrl}}"], "path": ["reports", "{{reportId}}", "assign"] }
+          }
+        },
+        {
+          "name": "Change priority (STAFF, ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"priority\": \"URGENT\"\n}" },
+            "url": { "raw": "{{baseUrl}}/reports/{{reportId}}/priority", "host": ["{{baseUrl}}"], "path": ["reports", "{{reportId}}", "priority"] }
+          }
+        },
+        {
+          "name": "List comments (ADMIN, STAFF own dept)",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/reports/{{reportId}}/comments", "host": ["{{baseUrl}}"], "path": ["reports", "{{reportId}}", "comments"] } }
+        },
+        {
+          "name": "Add comment (ADMIN, STAFF own dept)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"body\": \"Crew needs Water dept. to shut off the main first.\",\n  \"mentionedDepartmentId\": {{departmentId}}\n}" },
+            "url": { "raw": "{{baseUrl}}/reports/{{reportId}}/comments", "host": ["{{baseUrl}}"], "path": ["reports", "{{reportId}}", "comments"] }
+          }
+        },
+        {
+          "name": "Map pins",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/reports/map?status=ASSIGNED&categoryId=1", "host": ["{{baseUrl}}"], "path": ["reports", "map"], "query": [{ "key": "status", "value": "ASSIGNED" }, { "key": "categoryId", "value": "1" }] } }
+        }
+      ]
+    },
+    {
+      "name": "Feedback",
+      "item": [
+        {
+          "name": "Submit feedback (CITIZEN, own resolved report)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"reportId\": {{reportId}},\n  \"rating\": 5,\n  \"comment\": \"Fixed quickly, thank you!\"\n}" },
+            "url": { "raw": "{{baseUrl}}/feedback", "host": ["{{baseUrl}}"], "path": ["feedback"] }
+          }
+        },
+        {
+          "name": "Get feedback for a report",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/feedback/{{reportId}}", "host": ["{{baseUrl}}"], "path": ["feedback", "{{reportId}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "List own notifications",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/notifications?unreadOnly=false", "host": ["{{baseUrl}}"], "path": ["notifications"], "query": [{ "key": "unreadOnly", "value": "false" }] } }
+        },
+        {
+          "name": "Unread count",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/notifications/unread-count", "host": ["{{baseUrl}}"], "path": ["notifications", "unread-count"] } }
+        },
+        {
+          "name": "Mark one read",
+          "request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/notifications/{{notificationId}}/read", "host": ["{{baseUrl}}"], "path": ["notifications", "{{notificationId}}", "read"] } }
+        },
+        {
+          "name": "Mark all read",
+          "request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/notifications/read-all", "host": ["{{baseUrl}}"], "path": ["notifications", "read-all"] } }
+        }
+      ]
+    },
+    {
+      "name": "Score & Leaderboard",
+      "item": [
+        {
+          "name": "Leaderboard",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/leaderboard?limit=20", "host": ["{{baseUrl}}"], "path": ["leaderboard"], "query": [{ "key": "limit", "value": "20" }] } }
+        },
+        {
+          "name": "My score + history (CITIZEN)",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/score/me", "host": ["{{baseUrl}}"], "path": ["score", "me"] } }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Admin dashboard (ADMIN)",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/dashboard/admin", "host": ["{{baseUrl}}"], "path": ["dashboard", "admin"] } }
+        },
+        {
+          "name": "Staff dashboard (ADMIN, STAFF)",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/dashboard/staff?departmentId={{departmentId}}", "host": ["{{baseUrl}}"], "path": ["dashboard", "staff"], "query": [{ "key": "departmentId", "value": "{{departmentId}}" }] } }
+        },
+        {
+          "name": "Department performance (ADMIN, STAFF)",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/dashboard/departments", "host": ["{{baseUrl}}"], "path": ["dashboard", "departments"] } }
+        },
+        {
+          "name": "Category volume (ADMIN, STAFF)",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/dashboard/categories", "host": ["{{baseUrl}}"], "path": ["dashboard", "categories"] } }
+        }
+      ]
+    }
+  ]
+}

@@ -7,6 +7,7 @@ import com.uit.scirs.auth.dto.RegisterResponseDTO;
 import com.uit.scirs.auth.dto.UserDTO;
 import com.uit.scirs.auth.service.AuthService;
 import com.uit.scirs.common.security.CurrentUser;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Auth", description = "Login (all roles), citizen self-registration, current-user profile")
 public class AuthController {
 
     private final AuthService authService;

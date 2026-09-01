@@ -46,6 +46,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
+                        // Live API docs (see common/config/OpenApiConfig.java) — read-only
+                        // documentation, no data access; safe to expose unauthenticated the
+                        // same way the Postman collection and api-standards.md already are.
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                        // Container health check (render.yaml) — only "health" is exposed
+                        // (application.properties), no metrics/env/beans introspection.
+                        .requestMatchers("/actuator/health").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

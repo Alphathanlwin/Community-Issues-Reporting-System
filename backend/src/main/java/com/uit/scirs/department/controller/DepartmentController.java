@@ -4,6 +4,7 @@ import com.uit.scirs.department.dto.CreateDepartmentDTO;
 import com.uit.scirs.department.dto.DepartmentDTO;
 import com.uit.scirs.department.dto.UpdateDepartmentDTO;
 import com.uit.scirs.department.service.DepartmentService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/departments")
+@Tag(name = "Departments", description = "CRUD; the fixed set of 6 municipal departments")
 public class DepartmentController {
 
     private final DepartmentService departmentService;

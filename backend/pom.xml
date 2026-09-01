@@ -53,6 +53,12 @@
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
+        <!-- Health check endpoint for the hosting platform (Render, etc.) — see render.yaml -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- PostgreSQL Driver -->
         <dependency>
             <groupId>org.postgresql</groupId>
@@ -86,6 +92,14 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- OpenAPI / Swagger UI — generated live from the controllers/DTOs below,
+             see common/config/OpenApiConfig.java -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.6.0</version>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -117,6 +131,18 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Mockito's inline mock maker (ByteBuddy) does not recognise class
+                         file versions emitted by a JDK newer than 21 unless told to accept
+                         them. Without this, every service-layer test fails with
+                         "MockitoException: Could not modify all classes" on JDK 22+ — see
+                         BUG-08 in docs/bug-log.md. Harmless (and unnecessary) on JDK 21. -->
+                    <argLine>-Dnet.bytebuddy.experimental=true</argLine>
                 </configuration>
             </plugin>
         </plugins>

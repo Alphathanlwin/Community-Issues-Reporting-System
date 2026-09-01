@@ -95,7 +95,6 @@ class ReportAssignmentServiceTest {
         User staff = user(50L, RoleName.STAFF, 3L);
 
         when(reportRepository.findById(10L)).thenReturn(Optional.of(report));
-        when(userRepository.findById(99L)).thenReturn(Optional.of(user(99L, RoleName.ADMIN, null)));
         when(userRepository.findById(50L)).thenReturn(Optional.of(staff));
 
         AssignReportDTO dto = new AssignReportDTO();
@@ -114,7 +113,6 @@ class ReportAssignmentServiceTest {
         User citizen = user(7L, RoleName.CITIZEN, null);
 
         when(reportRepository.findById(10L)).thenReturn(Optional.of(report));
-        when(userRepository.findById(99L)).thenReturn(Optional.of(user(99L, RoleName.ADMIN, null)));
         when(userRepository.findById(7L)).thenReturn(Optional.of(citizen));
 
         AssignReportDTO dto = new AssignReportDTO();

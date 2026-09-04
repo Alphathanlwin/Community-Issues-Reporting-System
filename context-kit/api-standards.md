@@ -215,9 +215,11 @@ Rejected transitions return `409 Conflict`:
 
 Allowed only while the report is `ASSIGNED`, `IN_PROGRESS`, or `RESOLVED` (`PENDING_APPROVAL` must go through `/approve`; `REJECTED`/`CLOSED` are terminal) → otherwise `400 BusinessRuleException`. `staffId` must reference a `STAFF` account belonging to the *resulting* department (the one just set by this same call, or the report's current department if `departmentId` was omitted) → otherwise `400`. Writes a `report_status_history` row with identical `oldStatus`/`newStatus` and a remark describing what changed (per `architecture.md` § Reassignment).
 
-### Priority change
+### Priority
 
-`PATCH /api/reports/12/priority` — STAFF (own department only), ADMIN.
+Priority is now **set automatically** by `PriorityService` when an admin approves a report (`PATCH /api/reports/{id}/approve`) — see Decision D19 in `project-overview.md`. It is computed from the category's `severity_weight`, a duplicate-report count (currently always 0; no duplicate-detection feature exists yet), and how long the report waited for approval. `ReportDTO.priorityScore` exposes the raw computed score for transparency.
+
+`PATCH /api/reports/12/priority` — STAFF (own department only), ADMIN — still exists as a manual override for after approval (e.g. a duplicate discovered later, or a staff judgment call the formula didn't anticipate).
 
 ```json
 { "priority": "URGENT" }

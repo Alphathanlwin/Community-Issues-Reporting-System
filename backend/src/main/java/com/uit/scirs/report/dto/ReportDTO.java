@@ -12,6 +12,7 @@ public class ReportDTO {
     private String description;
     private String status;
     private String priority;
+    private Integer priorityScore;
     private BigDecimal latitude;
     private BigDecimal longitude;
     private String addressText;
@@ -72,6 +73,14 @@ public class ReportDTO {
 
     public void setPriority(String priority) {
         this.priority = priority;
+    }
+
+    public Integer getPriorityScore() {
+        return priorityScore;
+    }
+
+    public void setPriorityScore(Integer priorityScore) {
+        this.priorityScore = priorityScore;
     }
 
     public BigDecimal getLatitude() {

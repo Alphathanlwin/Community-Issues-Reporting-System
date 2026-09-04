@@ -69,6 +69,9 @@ public class Report {
     @Column(nullable = false)
     private ReportPriority priority = ReportPriority.NORMAL;
 
+    @Column(name = "priority_score")
+    private Integer priorityScore;
+
     @Column(nullable = false, precision = 10, scale = 7)
     private BigDecimal latitude;
 
@@ -186,6 +189,14 @@ public class Report {
 
     public void setPriority(ReportPriority priority) {
         this.priority = priority;
+    }
+
+    public Integer getPriorityScore() {
+        return priorityScore;
+    }
+
+    public void setPriorityScore(Integer priorityScore) {
+        this.priorityScore = priorityScore;
     }
 
     public BigDecimal getLatitude() {

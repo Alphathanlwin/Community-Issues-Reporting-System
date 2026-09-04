@@ -52,6 +52,7 @@ public class ReportWorkflowService {
     private final StatusHistoryService statusHistoryService;
     private final ScoreService scoreService;
     private final NotificationService notificationService;
+    private final PriorityService priorityService;
 
     public ReportWorkflowService(ReportRepository reportRepository,
                                   ReportImageRepository reportImageRepository,
@@ -59,7 +60,8 @@ public class ReportWorkflowService {
                                   ReportMapper reportMapper,
                                   StatusHistoryService statusHistoryService,
                                   ScoreService scoreService,
-                                  NotificationService notificationService) {
+                                  NotificationService notificationService,
+                                  PriorityService priorityService) {
         this.reportRepository = reportRepository;
         this.reportImageRepository = reportImageRepository;
         this.userRepository = userRepository;
@@ -67,6 +69,7 @@ public class ReportWorkflowService {
         this.statusHistoryService = statusHistoryService;
         this.scoreService = scoreService;
         this.notificationService = notificationService;
+        this.priorityService = priorityService;
     }
 
     @Transactional
@@ -83,6 +86,14 @@ public class ReportWorkflowService {
         report.setStatus(ReportStatus.ASSIGNED);
         report.setApprovedAt(LocalDateTime.now());
         report.setApprovedBy(adminUser);
+
+        // duplicateCount is hardcoded to 0 until duplicate-detection exists (out of
+        // scope per project-overview.md); PriorityService already accepts it as a
+        // parameter so wiring that in later won't touch this call site's shape.
+        PriorityService.PriorityResult priorityResult =
+                priorityService.calculate(report.getCategory(), 0, report.getCreatedAt());
+        report.setPriority(priorityResult.priority());
+        report.setPriorityScore(priorityResult.score());
 
         Report saved = reportRepository.save(report);
         statusHistoryService.record(saved, oldStatus, ReportStatus.ASSIGNED, adminUser, null);

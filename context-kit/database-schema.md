@@ -85,6 +85,7 @@ Single table for all three roles (see Decision D5 in `project-overview.md`).
 | icon | VARCHAR | Icon key for map pins and filter chips |
 | color_hex | VARCHAR(7) | Map pin colour |
 | is_active | BOOLEAN | NOT NULL, default true |
+| severity_weight | INTEGER | NOT NULL, default 3 — range 1 (minor) to 5 (severe); feeds `PriorityService`'s automatic priority score on report approval |
 
 **Seeded categories → department mapping:**
 
@@ -112,7 +113,8 @@ Single table for all three roles (see Decision D5 in `project-overview.md`).
 | reporter_id | BIGINT (FK) | → `users.id`, NOT NULL |
 | assigned_staff_id | BIGINT (FK) | → `users.id` (nullable) |
 | status | VARCHAR (Enum → `ReportStatus`) | NOT NULL, default `PENDING_APPROVAL` |
-| priority | VARCHAR (Enum → `ReportPriority`) | NOT NULL, default `NORMAL` |
+| priority | VARCHAR (Enum → `ReportPriority`) | NOT NULL, default `NORMAL` — set automatically by `PriorityService` on approval; may still be overridden afterward via `PATCH /api/reports/{id}/priority` |
+| priority_score | INTEGER | nullable — the raw score `PriorityService` computed (category severity + duplicate-count bonus + report-age bonus), kept for transparency/demo purposes; `null` until the report is approved |
 | latitude | DECIMAL(10,7) | NOT NULL |
 | longitude | DECIMAL(10,7) | NOT NULL |
 | address_text | VARCHAR | Reverse-geocoded or typed by the citizen |

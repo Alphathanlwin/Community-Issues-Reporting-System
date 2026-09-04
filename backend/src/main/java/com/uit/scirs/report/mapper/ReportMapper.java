@@ -35,6 +35,7 @@ public class ReportMapper {
         dto.setDescription(entity.getDescription());
         dto.setStatus(entity.getStatus().name());
         dto.setPriority(entity.getPriority().name());
+        dto.setPriorityScore(entity.getPriorityScore());
         dto.setLatitude(entity.getLatitude());
         dto.setLongitude(entity.getLongitude());
         dto.setAddressText(entity.getAddressText());

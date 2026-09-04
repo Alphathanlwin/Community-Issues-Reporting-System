@@ -53,6 +53,7 @@ class ReportWorkflowServiceTest {
     @Mock StatusHistoryService statusHistoryService;
     @Mock ScoreService scoreService;
     @Mock NotificationService notificationService;
+    @Mock PriorityService priorityService;
     @InjectMocks ReportWorkflowService workflowService;
 
     @Test
@@ -64,6 +65,8 @@ class ReportWorkflowServiceTest {
 
         when(reportRepository.findById(10L)).thenReturn(Optional.of(report));
         when(userRepository.findById(99L)).thenReturn(Optional.of(admin));
+        when(priorityService.calculate(pothole, 0, report.getCreatedAt()))
+                .thenReturn(new PriorityService.PriorityResult(ReportPriority.NORMAL, 4));
         when(reportRepository.save(any(Report.class))).thenAnswer(i -> i.getArgument(0));
         when(reportMapper.toDTO(any(Report.class))).thenAnswer(i -> dtoFor(i.getArgument(0)));
 
@@ -71,6 +74,8 @@ class ReportWorkflowServiceTest {
 
         assertThat(result.getStatus()).isEqualTo("ASSIGNED");
         assertThat(result.getDepartmentId()).isEqualTo(2L);
+        assertThat(report.getPriority()).isEqualTo(ReportPriority.NORMAL);
+        assertThat(report.getPriorityScore()).isEqualTo(4);
         verify(scoreService).award(report.getReporter(), PointReason.REPORT_APPROVED, report);
         verify(notificationService).notifyStatusChange(report);
     }

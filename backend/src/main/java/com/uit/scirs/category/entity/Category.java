@@ -38,6 +38,9 @@ public class Category {
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
+    @Column(name = "severity_weight", nullable = false)
+    private Integer severityWeight = 3;
+
     public Category() {
     }
 
@@ -95,5 +98,13 @@ public class Category {
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    public Integer getSeverityWeight() {
+        return severityWeight;
+    }
+
+    public void setSeverityWeight(Integer severityWeight) {
+        this.severityWeight = severityWeight;
     }
 }

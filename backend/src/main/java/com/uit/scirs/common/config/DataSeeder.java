@@ -118,6 +118,7 @@ public class DataSeeder implements CommandLineRunner {
             category.setDepartment(department);
             category.setIcon(spec.icon());
             category.setColorHex(spec.colorHex());
+            category.setSeverityWeight(spec.severityWeight());
             categoryRepository.save(category);
         });
     }
@@ -125,14 +126,16 @@ public class DataSeeder implements CommandLineRunner {
     private static final List<String> DEPARTMENT_NAMES =
             List.of("Electricity", "Roads", "Water", "Sanitation", "Parks", "Buildings");
 
-    private record CategorySeed(String departmentName, String icon, String colorHex) {
+    private record CategorySeed(String departmentName, String icon, String colorHex, int severityWeight) {
     }
 
+    // severityWeight: 1 (minor) – 5 (severe) — feeds PriorityService's automatic
+    // priority scoring on report approval (see report/service/PriorityService.java).
     private static final Map<String, CategorySeed> CATEGORY_TO_DEPARTMENT = Map.of(
-            "Street Lighting / Power Outage", new CategorySeed("Electricity", "bolt", "#EAB308"),
-            "Pothole / Damaged Road", new CategorySeed("Roads", "road", "#F97316"),
-            "Water Leakage / Drainage", new CategorySeed("Water", "droplet", "#3B82F6"),
-            "Garbage / Sanitation", new CategorySeed("Sanitation", "trash", "#22C55E"),
-            "Park & Public Space", new CategorySeed("Parks", "tree", "#16A34A"),
-            "Damaged Public Building", new CategorySeed("Buildings", "building", "#6B7280"));
+            "Street Lighting / Power Outage", new CategorySeed("Electricity", "bolt", "#EAB308", 3),
+            "Pothole / Damaged Road", new CategorySeed("Roads", "road", "#F97316", 4),
+            "Water Leakage / Drainage", new CategorySeed("Water", "droplet", "#3B82F6", 5),
+            "Garbage / Sanitation", new CategorySeed("Sanitation", "trash", "#22C55E", 3),
+            "Park & Public Space", new CategorySeed("Parks", "tree", "#16A34A", 2),
+            "Damaged Public Building", new CategorySeed("Buildings", "building", "#6B7280", 4));
 }

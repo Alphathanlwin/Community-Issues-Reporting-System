@@ -174,7 +174,7 @@ Always creates the account with `role = STAFF` and `accountStatus = APPROVED` im
 
 | Endpoint | Method | Role | Purpose |
 |----------|--------|------|---------|
-| `/api/reports` | POST | CITIZEN | Submit a report (`multipart/form-data`: `data` JSON part + `images` file parts) |
+| `/api/reports` | POST | CITIZEN | Submit a report (`multipart/form-data`: `data` JSON part + `images` file parts) — may return a duplicate-check prompt instead of creating one, see below |
 | `/api/reports` | GET | ADMIN, STAFF | All reports; staff are scoped to their department |
 | `/api/reports/my` | GET | CITIZEN | Own report history |
 | `/api/reports/pending` | GET | ADMIN | Report approval queue |
@@ -188,6 +188,39 @@ Always creates the account with `role = STAFF` and `accountStatus = APPROVED` im
 | `/api/reports/{id}/history` | GET | ADMIN, STAFF, owner | Status timeline |
 | `/api/reports/{id}/comments` | GET / POST | ADMIN, STAFF | Internal department notes |
 | `/api/reports/map` | GET | all | Map pins (see below) |
+
+### Submit a report — duplicate check
+
+`POST /api/reports` runs a proximity duplicate check (same category, non-terminal status, within 100m — see Decision D20 in `project-overview.md`) before persisting anything. The `data` part gains two optional fields for the round trip:
+
+```json
+{ "confirmDuplicateOfId": 42, "forceCreate": false }
+```
+
+Three possible outcomes:
+
+1. **No duplicates found** (or none of the below fields set and the location is clear) → normal happy path, `201 Created`, body is the created `ReportDTO` exactly as before.
+2. **Duplicates found**, and the request carries neither `confirmDuplicateOfId` nor `forceCreate: true` → **`200 OK`**, no report is created, body is a `DuplicateCheckResultDTO`:
+   ```json
+   {
+     "possibleDuplicates": [
+       {
+         "reportId": 42,
+         "reportCode": "RPT-2026-000042",
+         "title": "Pothole on Main St",
+         "status": "ASSIGNED",
+         "distanceMeters": 18.4,
+         "thumbnailUrl": "https://.../pothole.jpg",
+         "createdAt": "2026-08-20T09:00:00Z"
+       }
+     ]
+   }
+   ```
+   The frontend shows "Is this the same issue?" and resubmits with one of:
+   - `confirmDuplicateOfId: 42` — citizen confirms report 42 is the same issue.
+   - `forceCreate: true` — citizen says "No, this is different."
+3. **Confirming a duplicate** (`confirmDuplicateOfId` set) → `200 OK` (no new report created), body is the **existing** report's `ReportDTO`. Creates a `report_confirmations` row and awards the citizen +3 points (`CONFIRMATION_GIVEN`). Confirming the same report twice → `409 Conflict` (unique `(report_id, citizen_id)`).
+4. **Forcing creation** (`forceCreate: true`, past a duplicate warning) → skips the duplicate check, `201 Created`, body is the created `ReportDTO`, and `duplicateChecked = true` is set on the new report so it isn't re-flagged.
 
 ### Status change request
 

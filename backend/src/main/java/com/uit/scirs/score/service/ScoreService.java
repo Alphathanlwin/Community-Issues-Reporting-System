@@ -35,6 +35,7 @@ public class ScoreService {
         POINTS_BY_REASON.put(PointReason.REPORT_RESOLVED, 20);
         POINTS_BY_REASON.put(PointReason.FEEDBACK_GIVEN, 5);
         POINTS_BY_REASON.put(PointReason.REPORT_REJECTED, -5);
+        POINTS_BY_REASON.put(PointReason.CONFIRMATION_GIVEN, 3);
     }
 
     private final PointTransactionRepository pointTransactionRepository;

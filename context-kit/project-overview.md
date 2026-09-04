@@ -133,6 +133,7 @@ Points are awarded automatically through `PointTransaction` rows so the leaderbo
 | Report resolved by staff | +20 | `REPORT_RESOLVED` |
 | Feedback submitted after resolution | +5 | `FEEDBACK_GIVEN` |
 | Report denied as invalid/spam | −5 | `REPORT_REJECTED` |
+| Citizen confirms an existing report is the same issue ("me too") | +3 | `CONFIRMATION_GIVEN` |
 
 Leaderboard = sum of point transactions per citizen, ranked descending, ties broken by earliest join date. A citizen's total is cached on `users.score_points` and recalculated on every point transaction.
 
@@ -152,7 +153,7 @@ Leaderboard = sum of point transactions per citizen, ranked descending, ties bro
 Do not build these. If asked, flag them as out of scope and point here.
 
 - Native mobile app (the citizen UI is a **mobile-responsive web app**, not a native app)
-- AI features: automatic image classification, duplicate-issue detection, chatbot assistance
+- AI features: automatic image classification, chatbot assistance, and specifically *AI-based* duplicate-issue detection (image similarity, NLP text matching, etc.) — the pure geometric proximity check in `DuplicateDetectionService` (same category + within 100m, see Decision D20) is not this and is in scope
 - Payment or fine-processing subsystems
 - SMS notifications — **email and in-app notifications only** in this phase
 
@@ -198,3 +199,4 @@ Conflicts between source documents and how they were resolved. Append new decisi
 | D12 | `ScoreService.award(user, reason, report)` has no `points` parameter — the reason→points mapping lives in one place inside `ScoreService`, not at each call site | Matches `testing-standards.md`'s own `ReportWorkflowServiceTest` example signature, and removes the risk of a call site passing the wrong point literal for a given `PointReason`. |
 | D13 | D4's Supabase Storage fallback is now actually implemented (`SupabaseStorageService`, selected via `app.storage.provider=supabase`) rather than only documented as a future path | Needed for a real deploy — Render's free-plan container disk is ephemeral, so `LocalStorageService` alone loses every uploaded report photo on redeploy/restart. See `progress-tracker.md` § Decisions (2026-09-04) for implementation details. |
 | D19 | Priority is calculated automatically by `PriorityService` (category severity + duplicate count + report age) at approval time, replacing the static `NORMAL` default | Demonstrates real business-rule logic for the Technical Implementation and Requirements Analysis rubric criteria. The existing manual `PATCH /api/reports/{id}/priority` endpoint is kept, not removed — it now serves as a post-approval override (e.g. a duplicate surfaced later) rather than the sole way priority is ever set. |
+| D20 | Proximity-based duplicate detection (100m + same category + non-terminal status) with citizen confirmation is in scope | Problem #6 of the problem statement requires it. Geometric proximity matching (bounding box + Haversine distance in Java, no PostGIS) is a spatial query, not an AI feature, so it does not conflict with the Out of Scope exclusion of AI duplicate detection. (Numbered D20, not D13 as originally drafted — D13 was already taken by the Supabase Storage decision; see `progress-tracker.md` § Decisions for the full implementation writeup.) |

@@ -4,22 +4,30 @@ import com.uit.scirs.category.entity.Category;
 import com.uit.scirs.category.repository.CategoryRepository;
 import com.uit.scirs.common.config.CacheConfig;
 import com.uit.scirs.common.exception.BusinessRuleException;
+import com.uit.scirs.common.exception.DuplicateResourceException;
 import com.uit.scirs.common.exception.ResourceNotFoundException;
 import com.uit.scirs.common.integration.FileStorageService;
 import com.uit.scirs.common.security.CurrentUser;
 import com.uit.scirs.common.util.ReportCodeGenerator;
 import com.uit.scirs.notification.service.NotificationService;
 import com.uit.scirs.report.dto.CreateReportDTO;
+import com.uit.scirs.report.dto.DuplicateCheckResultDTO;
+import com.uit.scirs.report.dto.PossibleDuplicateDTO;
 import com.uit.scirs.report.dto.ReportDTO;
 import com.uit.scirs.report.dto.ReportMapDTO;
 import com.uit.scirs.report.dto.ReportStatusHistoryDTO;
+import com.uit.scirs.report.dto.ReportSubmissionResultDTO;
 import com.uit.scirs.report.entity.ImageType;
 import com.uit.scirs.report.entity.Report;
+import com.uit.scirs.report.entity.ReportConfirmation;
 import com.uit.scirs.report.entity.ReportImage;
 import com.uit.scirs.report.entity.ReportStatus;
 import com.uit.scirs.report.mapper.ReportMapper;
+import com.uit.scirs.report.repository.ReportConfirmationRepository;
 import com.uit.scirs.report.repository.ReportRepository;
 import com.uit.scirs.report.repository.ReportStatusHistoryRepository;
+import com.uit.scirs.score.entity.PointReason;
+import com.uit.scirs.score.service.ScoreService;
 import com.uit.scirs.user.entity.AccountStatus;
 import com.uit.scirs.user.entity.RoleName;
 import com.uit.scirs.user.entity.User;
@@ -45,36 +53,104 @@ public class ReportService {
 
     private final ReportRepository reportRepository;
     private final ReportStatusHistoryRepository reportStatusHistoryRepository;
+    private final ReportConfirmationRepository reportConfirmationRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final ReportMapper reportMapper;
     private final FileStorageService fileStorageService;
     private final ReportCodeGenerator reportCodeGenerator;
     private final NotificationService notificationService;
+    private final DuplicateDetectionService duplicateDetectionService;
+    private final ScoreService scoreService;
     private final Long slaWaitingTooLongHours;
 
     public ReportService(ReportRepository reportRepository,
                           ReportStatusHistoryRepository reportStatusHistoryRepository,
+                          ReportConfirmationRepository reportConfirmationRepository,
                           CategoryRepository categoryRepository,
                           UserRepository userRepository,
                           ReportMapper reportMapper,
                           FileStorageService fileStorageService,
                           ReportCodeGenerator reportCodeGenerator,
                           NotificationService notificationService,
+                          DuplicateDetectionService duplicateDetectionService,
+                          ScoreService scoreService,
                           @Value("${app.sla.waiting-too-long-hours:48}") Long slaWaitingTooLongHours) {
         this.reportRepository = reportRepository;
         this.reportStatusHistoryRepository = reportStatusHistoryRepository;
+        this.reportConfirmationRepository = reportConfirmationRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
         this.reportMapper = reportMapper;
         this.fileStorageService = fileStorageService;
         this.reportCodeGenerator = reportCodeGenerator;
         this.notificationService = notificationService;
+        this.duplicateDetectionService = duplicateDetectionService;
+        this.scoreService = scoreService;
         this.slaWaitingTooLongHours = slaWaitingTooLongHours;
     }
 
+    /**
+     * Orchestrates the duplicate-check round trip in front of report
+     * creation. On the first call (no {@code confirmDuplicateOfId}, no
+     * {@code forceCreate}), open reports of the same category within 100m
+     * are surfaced instead of persisting anything. The citizen then either
+     * confirms one is the same issue, or resubmits with
+     * {@code forceCreate: true} to create a new report anyway.
+     */
+    @Transactional
+    public ReportSubmissionResultDTO submitReport(CreateReportDTO dto, List<MultipartFile> images, Long citizenId) {
+        User citizen = userRepository.findById(citizenId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (citizen.getAccountStatus() != AccountStatus.APPROVED) {
+            throw new BusinessRuleException("Your account is not yet approved to submit reports.");
+        }
+
+        if (dto.getConfirmDuplicateOfId() != null) {
+            return confirmDuplicate(dto.getConfirmDuplicateOfId(), citizen);
+        }
+
+        boolean forceCreate = Boolean.TRUE.equals(dto.getForceCreate());
+        if (!forceCreate) {
+            List<PossibleDuplicateDTO> duplicates = duplicateDetectionService.findPossibleDuplicates(
+                    dto.getLatitude(), dto.getLongitude(), dto.getCategoryId());
+            if (!duplicates.isEmpty()) {
+                DuplicateCheckResultDTO result = new DuplicateCheckResultDTO();
+                result.setPossibleDuplicates(duplicates);
+                return ReportSubmissionResultDTO.duplicatesFound(result);
+            }
+        }
+
+        ReportDTO created = createReport(dto, images, citizenId, forceCreate);
+        return ReportSubmissionResultDTO.created(created);
+    }
+
+    private ReportSubmissionResultDTO confirmDuplicate(Long existingReportId, User citizen) {
+        Report existing = findEntity(existingReportId);
+
+        if (reportConfirmationRepository.existsByReportIdAndCitizenId(existingReportId, citizen.getId())) {
+            throw new DuplicateResourceException("You have already confirmed this report.");
+        }
+
+        ReportConfirmation confirmation = new ReportConfirmation();
+        confirmation.setReport(existing);
+        confirmation.setCitizen(citizen);
+        reportConfirmationRepository.save(confirmation);
+
+        scoreService.award(citizen, PointReason.CONFIRMATION_GIVEN, existing);
+
+        return ReportSubmissionResultDTO.confirmed(reportMapper.toDTO(existing));
+    }
+
+    /** Unconditional creation — always persists a new report. Called directly by tests and internally by {@link #submitReport}. */
     @Transactional
     public ReportDTO createReport(CreateReportDTO dto, List<MultipartFile> images, Long citizenId) {
+        return createReport(dto, images, citizenId, false);
+    }
+
+    @Transactional
+    public ReportDTO createReport(CreateReportDTO dto, List<MultipartFile> images, Long citizenId, boolean duplicateChecked) {
         User citizen = userRepository.findById(citizenId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -90,6 +166,7 @@ public class ReportService {
         report.setCategory(category);
         report.setStatus(ReportStatus.PENDING_APPROVAL);
         report.setReportCode(reportCodeGenerator.next());
+        report.setDuplicateChecked(duplicateChecked);
 
         if (images != null) {
             for (MultipartFile image : images) {

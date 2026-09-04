@@ -3,20 +3,27 @@ package com.uit.scirs.report.service;
 import com.uit.scirs.category.entity.Category;
 import com.uit.scirs.category.repository.CategoryRepository;
 import com.uit.scirs.common.exception.BusinessRuleException;
+import com.uit.scirs.common.exception.DuplicateResourceException;
 import com.uit.scirs.common.exception.ResourceNotFoundException;
 import com.uit.scirs.common.integration.FileStorageService;
 import com.uit.scirs.common.security.CurrentUser;
 import com.uit.scirs.common.util.ReportCodeGenerator;
 import com.uit.scirs.notification.service.NotificationService;
 import com.uit.scirs.report.dto.CreateReportDTO;
+import com.uit.scirs.report.dto.PossibleDuplicateDTO;
 import com.uit.scirs.report.dto.ReportDTO;
 import com.uit.scirs.report.dto.ReportMapDTO;
+import com.uit.scirs.report.dto.ReportSubmissionResultDTO;
 import com.uit.scirs.report.entity.Report;
+import com.uit.scirs.report.entity.ReportConfirmation;
 import com.uit.scirs.report.entity.ReportImage;
 import com.uit.scirs.report.entity.ReportStatus;
 import com.uit.scirs.report.mapper.ReportMapper;
+import com.uit.scirs.report.repository.ReportConfirmationRepository;
 import com.uit.scirs.report.repository.ReportRepository;
 import com.uit.scirs.report.repository.ReportStatusHistoryRepository;
+import com.uit.scirs.score.entity.PointReason;
+import com.uit.scirs.score.service.ScoreService;
 import com.uit.scirs.user.entity.AccountStatus;
 import com.uit.scirs.user.entity.RoleName;
 import com.uit.scirs.user.entity.User;
@@ -49,12 +56,15 @@ class ReportServiceTest {
 
     @Mock ReportRepository reportRepository;
     @Mock ReportStatusHistoryRepository reportStatusHistoryRepository;
+    @Mock ReportConfirmationRepository reportConfirmationRepository;
     @Mock CategoryRepository categoryRepository;
     @Mock UserRepository userRepository;
     @Mock ReportMapper reportMapper;
     @Mock FileStorageService fileStorageService;
     @Mock ReportCodeGenerator reportCodeGenerator;
     @Mock NotificationService notificationService;
+    @Mock DuplicateDetectionService duplicateDetectionService;
+    @Mock ScoreService scoreService;
     @InjectMocks ReportService reportService;
 
     @Test
@@ -163,6 +173,125 @@ class ReportServiceTest {
         assertThat(savedImages).hasSize(1);
         assertThat(savedImages.get(0).getImageUrl()).isEqualTo("/uploads/reports/generated.jpg");
         assertThat(savedImages.get(0).getUploadedBy()).isEqualTo(citizen);
+    }
+
+    @Test
+    void submitReport_noDuplicatesFound_createsReportNormally() {
+        User citizen = approvedCitizen(7L);
+        Category category = category(3L, "Pothole / Damaged Road");
+        CreateReportDTO dto = createDto(3L);
+
+        when(userRepository.findById(7L)).thenReturn(Optional.of(citizen));
+        when(categoryRepository.findById(3L)).thenReturn(Optional.of(category));
+        when(duplicateDetectionService.findPossibleDuplicates(dto.getLatitude(), dto.getLongitude(), 3L))
+                .thenReturn(List.of());
+        when(reportCodeGenerator.next()).thenReturn("RPT-2026-000010");
+        when(reportMapper.toEntity(dto)).thenReturn(new Report());
+        when(reportRepository.save(any(Report.class))).thenAnswer(i -> {
+            Report saved = i.getArgument(0);
+            saved.setId(1L);
+            return saved;
+        });
+        when(reportMapper.toDTO(any(Report.class))).thenAnswer(i -> dtoFor(i.getArgument(0)));
+
+        ReportSubmissionResultDTO result = reportService.submitReport(dto, null, 7L);
+
+        assertThat(result.getOutcome()).isEqualTo(ReportSubmissionResultDTO.Outcome.CREATED);
+        assertThat(result.getReport().getStatus()).isEqualTo("PENDING_APPROVAL");
+
+        ArgumentCaptor<Report> captor = ArgumentCaptor.forClass(Report.class);
+        verify(reportRepository).save(captor.capture());
+        assertThat(captor.getValue().isDuplicateChecked()).isFalse();
+    }
+
+    @Test
+    void submitReport_duplicatesFound_returnsThemWithoutCreatingAReport() {
+        User citizen = approvedCitizen(7L);
+        CreateReportDTO dto = createDto(3L);
+        PossibleDuplicateDTO duplicate = new PossibleDuplicateDTO();
+        duplicate.setReportId(42L);
+
+        when(userRepository.findById(7L)).thenReturn(Optional.of(citizen));
+        when(duplicateDetectionService.findPossibleDuplicates(dto.getLatitude(), dto.getLongitude(), 3L))
+                .thenReturn(List.of(duplicate));
+
+        ReportSubmissionResultDTO result = reportService.submitReport(dto, null, 7L);
+
+        assertThat(result.getOutcome()).isEqualTo(ReportSubmissionResultDTO.Outcome.DUPLICATES_FOUND);
+        assertThat(result.getDuplicateCheck().getPossibleDuplicates()).containsExactly(duplicate);
+        verify(reportRepository, never()).save(any(Report.class));
+    }
+
+    @Test
+    void submitReport_withForceCreate_skipsDuplicateCheckAndMarksDuplicateChecked() {
+        User citizen = approvedCitizen(7L);
+        Category category = category(3L, "Pothole / Damaged Road");
+        CreateReportDTO dto = createDto(3L);
+        dto.setForceCreate(true);
+
+        when(userRepository.findById(7L)).thenReturn(Optional.of(citizen));
+        when(categoryRepository.findById(3L)).thenReturn(Optional.of(category));
+        when(reportCodeGenerator.next()).thenReturn("RPT-2026-000011");
+        when(reportMapper.toEntity(dto)).thenReturn(new Report());
+        when(reportRepository.save(any(Report.class))).thenAnswer(i -> {
+            Report saved = i.getArgument(0);
+            saved.setId(1L);
+            return saved;
+        });
+        when(reportMapper.toDTO(any(Report.class))).thenAnswer(i -> dtoFor(i.getArgument(0)));
+
+        ReportSubmissionResultDTO result = reportService.submitReport(dto, null, 7L);
+
+        assertThat(result.getOutcome()).isEqualTo(ReportSubmissionResultDTO.Outcome.CREATED);
+        verify(duplicateDetectionService, never()).findPossibleDuplicates(any(), any(), any());
+
+        ArgumentCaptor<Report> captor = ArgumentCaptor.forClass(Report.class);
+        verify(reportRepository).save(captor.capture());
+        assertThat(captor.getValue().isDuplicateChecked()).isTrue();
+    }
+
+    @Test
+    void submitReport_withConfirmDuplicateOfId_createsConfirmationAndAwardsPointsInsteadOfANewReport() {
+        User citizen = approvedCitizen(7L);
+        Report existing = new Report();
+        existing.setId(42L);
+        CreateReportDTO dto = createDto(3L);
+        dto.setConfirmDuplicateOfId(42L);
+
+        when(userRepository.findById(7L)).thenReturn(Optional.of(citizen));
+        when(reportRepository.findById(42L)).thenReturn(Optional.of(existing));
+        when(reportConfirmationRepository.existsByReportIdAndCitizenId(42L, 7L)).thenReturn(false);
+        when(reportMapper.toDTO(existing)).thenReturn(dtoFor(existing));
+
+        ReportSubmissionResultDTO result = reportService.submitReport(dto, null, 7L);
+
+        assertThat(result.getOutcome()).isEqualTo(ReportSubmissionResultDTO.Outcome.CONFIRMED);
+        verify(reportRepository, never()).save(any(Report.class));
+
+        ArgumentCaptor<ReportConfirmation> captor = ArgumentCaptor.forClass(ReportConfirmation.class);
+        verify(reportConfirmationRepository).save(captor.capture());
+        assertThat(captor.getValue().getReport()).isEqualTo(existing);
+        assertThat(captor.getValue().getCitizen()).isEqualTo(citizen);
+        verify(scoreService).award(citizen, PointReason.CONFIRMATION_GIVEN, existing);
+    }
+
+    @Test
+    void submitReport_confirmingTheSameReportTwice_throwsDuplicateResourceException() {
+        User citizen = approvedCitizen(7L);
+        Report existing = new Report();
+        existing.setId(42L);
+        CreateReportDTO dto = createDto(3L);
+        dto.setConfirmDuplicateOfId(42L);
+
+        when(userRepository.findById(7L)).thenReturn(Optional.of(citizen));
+        when(reportRepository.findById(42L)).thenReturn(Optional.of(existing));
+        when(reportConfirmationRepository.existsByReportIdAndCitizenId(42L, 7L)).thenReturn(true);
+
+        assertThatThrownBy(() -> reportService.submitReport(dto, null, 7L))
+                .isInstanceOf(DuplicateResourceException.class);
+
+        verify(reportConfirmationRepository, never()).save(any(ReportConfirmation.class));
+        verify(scoreService, never()).award(any(), any(), any());
     }
 
     @Test

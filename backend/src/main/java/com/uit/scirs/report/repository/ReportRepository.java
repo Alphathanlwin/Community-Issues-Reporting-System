@@ -106,4 +106,23 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
            GROUP BY r.category.id
            """)
     List<CategoryVolumeProjection> countGroupedByCategory();
+
+    // Bounding-box pre-filter for DuplicateDetectionService — no PostGIS on
+    // this project (see D20 in project-overview.md), so this is deliberately
+    // an approximation: the box's corners can be slightly further than the
+    // caller's actual radius, and DuplicateDetectionService runs a precise
+    // Haversine distance check in Java over these candidates to compensate.
+    @Query("""
+           SELECT r FROM Report r
+           WHERE r.category.id = :categoryId
+             AND r.status NOT IN :excludedStatuses
+             AND r.latitude BETWEEN :minLat AND :maxLat
+             AND r.longitude BETWEEN :minLng AND :maxLng
+           """)
+    List<Report> findOpenCandidatesNear(Long categoryId,
+                                         List<ReportStatus> excludedStatuses,
+                                         BigDecimal minLat,
+                                         BigDecimal maxLat,
+                                         BigDecimal minLng,
+                                         BigDecimal maxLng);
 }

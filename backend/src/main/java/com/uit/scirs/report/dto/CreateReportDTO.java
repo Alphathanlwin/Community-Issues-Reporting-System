@@ -32,6 +32,14 @@ public class CreateReportDTO {
 
     private String addressText;
 
+    // Second-call fields for the duplicate-check round trip (see
+    // DuplicateDetectionService): the citizen either confirms an existing
+    // report is the same issue, or explicitly says "no, this is different"
+    // and forces a new one. Neither is set on the first attempt.
+    private Long confirmDuplicateOfId;
+
+    private Boolean forceCreate;
+
     public String getTitle() {
         return title;
     }
@@ -78,5 +86,21 @@ public class CreateReportDTO {
 
     public void setAddressText(String addressText) {
         this.addressText = addressText;
+    }
+
+    public Long getConfirmDuplicateOfId() {
+        return confirmDuplicateOfId;
+    }
+
+    public void setConfirmDuplicateOfId(Long confirmDuplicateOfId) {
+        this.confirmDuplicateOfId = confirmDuplicateOfId;
+    }
+
+    public Boolean getForceCreate() {
+        return forceCreate;
+    }
+
+    public void setForceCreate(Boolean forceCreate) {
+        this.forceCreate = forceCreate;
     }
 }

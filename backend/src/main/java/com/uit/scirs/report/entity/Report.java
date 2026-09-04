@@ -81,6 +81,12 @@ public class Report {
     @Column(name = "address_text")
     private String addressText;
 
+    // Set true only when a citizen explicitly dismissed a duplicate warning
+    // ("No, this is different") — see DuplicateDetectionService — so we don't
+    // re-flag the same report repeatedly in future passes.
+    @Column(name = "duplicate_checked", nullable = false)
+    private boolean duplicateChecked = false;
+
     @Column(name = "rejection_reason")
     private String rejectionReason;
 
@@ -229,6 +235,14 @@ public class Report {
 
     public void setRejectionReason(String rejectionReason) {
         this.rejectionReason = rejectionReason;
+    }
+
+    public boolean isDuplicateChecked() {
+        return duplicateChecked;
+    }
+
+    public void setDuplicateChecked(boolean duplicateChecked) {
+        this.duplicateChecked = duplicateChecked;
     }
 
     public List<ReportImage> getImages() {

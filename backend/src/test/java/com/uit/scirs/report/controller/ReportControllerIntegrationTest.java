@@ -1,5 +1,6 @@
 package com.uit.scirs.report.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.uit.scirs.category.entity.Category;
 import com.uit.scirs.category.repository.CategoryRepository;
 import com.uit.scirs.common.security.JwtUtil;
@@ -26,6 +27,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -52,7 +54,11 @@ class ReportControllerIntegrationTest {
         String token = jwtUtil.generateToken(citizen.getId(), citizen.getEmail(), RoleName.CITIZEN.name(), null);
         long categoryId = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow().getId();
 
-        MockMultipartFile data = jsonPart(categoryId, "16.8409000", "96.1735000");
+        // Each create-flow test in this class uses its own far-apart location
+        // (see the class-level comment above jsonPart) so the new duplicate
+        // check added in this session doesn't flag one test's report against
+        // another's in this shared, never-rolled-back H2 context.
+        MockMultipartFile data = jsonPart(categoryId, "10.0000000", "10.0000000");
 
         mockMvc.perform(multipart("/api/reports").file(data)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -68,7 +74,7 @@ class ReportControllerIntegrationTest {
         String token = jwtUtil.generateToken(citizen.getId(), citizen.getEmail(), RoleName.CITIZEN.name(), null);
         long categoryId = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow().getId();
 
-        MockMultipartFile data = jsonPart(categoryId, "16.8409000", "96.1735000");
+        MockMultipartFile data = jsonPart(categoryId, "20.0000000", "20.0000000");
         byte[] jpegBytes = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 0x00, 0x01, 0x02};
         MockMultipartFile image = new MockMultipartFile("images", "pothole.jpg", "image/jpeg", jpegBytes);
 
@@ -85,7 +91,7 @@ class ReportControllerIntegrationTest {
         String token = jwtUtil.generateToken(citizen.getId(), citizen.getEmail(), RoleName.CITIZEN.name(), null);
         long categoryId = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow().getId();
 
-        MockMultipartFile data = jsonPart(categoryId, "16.8409000", "96.1735000");
+        MockMultipartFile data = jsonPart(categoryId, "30.0000000", "30.0000000");
         MockMultipartFile bogusImage = new MockMultipartFile("images", "fake.jpg", "image/jpeg",
                 "not a real image".getBytes());
 
@@ -105,7 +111,7 @@ class ReportControllerIntegrationTest {
         String token = jwtUtil.generateToken(citizen.getId(), citizen.getEmail(), RoleName.CITIZEN.name(), null);
         long categoryId = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow().getId();
 
-        MockMultipartFile data = jsonPart(categoryId, "16.8409000", "96.1735000");
+        MockMultipartFile data = jsonPart(categoryId, "40.0000000", "40.0000000");
         byte[] oversized = new byte[6 * 1024 * 1024];
         MockMultipartFile hugeImage = new MockMultipartFile("images", "huge.jpg", "image/jpeg", oversized);
 
@@ -305,12 +311,135 @@ class ReportControllerIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void createReport_withinHundredMetersOfOpenReportSameCategory_returns200WithPossibleDuplicates() throws Exception {
+        User firstReporter = persistApprovedCitizen("dup-reporter1@example.com");
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Report existing = persistReport(firstReporter, pothole, null, ReportStatus.PENDING_APPROVAL,
+                "50.0000000", "50.0000000");
+
+        User secondReporter = persistApprovedCitizen("dup-reporter2@example.com");
+        String token = jwtUtil.generateToken(secondReporter.getId(), secondReporter.getEmail(), RoleName.CITIZEN.name(), null);
+        // ~11m away — well within the 100m match radius.
+        MockMultipartFile data = jsonPart(pothole.getId(), "50.0001000", "50.0000000");
+
+        mockMvc.perform(multipart("/api/reports").file(data)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.possibleDuplicates[0].reportId").value(existing.getId()))
+                .andExpect(jsonPath("$.possibleDuplicates[0].distanceMeters").exists());
+
+        assertThat(reportRepository.findByReporterIdOrderByCreatedAtDesc(secondReporter.getId())).isEmpty();
+    }
+
+    @Test
+    void createReport_moreThanHundredMetersFromOpenReportSameCategory_returns201Normally() throws Exception {
+        User firstReporter = persistApprovedCitizen("dup-reporter3@example.com");
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        persistReport(firstReporter, pothole, null, ReportStatus.PENDING_APPROVAL, "51.0000000", "51.0000000");
+
+        User secondReporter = persistApprovedCitizen("dup-reporter4@example.com");
+        String token = jwtUtil.generateToken(secondReporter.getId(), secondReporter.getEmail(), RoleName.CITIZEN.name(), null);
+        // ~1.1km away.
+        MockMultipartFile data = jsonPart(pothole.getId(), "51.0100000", "51.0000000");
+
+        mockMvc.perform(multipart("/api/reports").file(data)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("PENDING_APPROVAL"));
+    }
+
+    @Test
+    void createReport_sameLocationDifferentCategory_notFlaggedAsDuplicate() throws Exception {
+        User firstReporter = persistApprovedCitizen("dup-reporter5@example.com");
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Category water = categoryRepository.findByName("Water Leakage / Drainage").orElseThrow();
+        persistReport(firstReporter, pothole, null, ReportStatus.PENDING_APPROVAL, "52.0000000", "52.0000000");
+
+        User secondReporter = persistApprovedCitizen("dup-reporter6@example.com");
+        String token = jwtUtil.generateToken(secondReporter.getId(), secondReporter.getEmail(), RoleName.CITIZEN.name(), null);
+        MockMultipartFile data = jsonPart(water.getId(), "52.0000000", "52.0000000");
+
+        mockMvc.perform(multipart("/api/reports").file(data)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void createReport_onlyExistingCandidateIsResolved_notFlaggedAsDuplicate() throws Exception {
+        User firstReporter = persistApprovedCitizen("dup-reporter7@example.com");
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        persistReport(firstReporter, pothole, null, ReportStatus.RESOLVED, "53.0000000", "53.0000000");
+
+        User secondReporter = persistApprovedCitizen("dup-reporter8@example.com");
+        String token = jwtUtil.generateToken(secondReporter.getId(), secondReporter.getEmail(), RoleName.CITIZEN.name(), null);
+        MockMultipartFile data = jsonPart(pothole.getId(), "53.0000000", "53.0000000");
+
+        mockMvc.perform(multipart("/api/reports").file(data)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void createReport_withForceCreateAfterWarning_createsAndMarksDuplicateChecked() throws Exception {
+        User firstReporter = persistApprovedCitizen("dup-reporter9@example.com");
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        persistReport(firstReporter, pothole, null, ReportStatus.PENDING_APPROVAL, "54.0000000", "54.0000000");
+
+        User secondReporter = persistApprovedCitizen("dup-reporter10@example.com");
+        String token = jwtUtil.generateToken(secondReporter.getId(), secondReporter.getEmail(), RoleName.CITIZEN.name(), null);
+        String json = """
+                {"title":"Pothole on Main St","description":"Large pothole blocking traffic",
+                 "categoryId":%d,"latitude":54.0000000,"longitude":54.0000000,"forceCreate":true}"""
+                .formatted(pothole.getId());
+        MockMultipartFile data = new MockMultipartFile("data", "", "application/json", json.getBytes());
+
+        String response = mockMvc.perform(multipart("/api/reports").file(data)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        long newReportId = new ObjectMapper().readTree(response).get("id").asLong();
+        Report saved = reportRepository.findById(newReportId).orElseThrow();
+        assertThat(saved.isDuplicateChecked()).isTrue();
+    }
+
+    @Test
+    void confirmDuplicate_thenConfirmAgain_createsConfirmationOnceAndReturns409OnSecondAttempt() throws Exception {
+        User firstReporter = persistApprovedCitizen("dup-reporter11@example.com");
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Report existing = persistReport(firstReporter, pothole, null, ReportStatus.PENDING_APPROVAL,
+                "55.0000000", "55.0000000");
+
+        User confirmingCitizen = persistApprovedCitizen("dup-reporter12@example.com");
+        String token = jwtUtil.generateToken(confirmingCitizen.getId(), confirmingCitizen.getEmail(), RoleName.CITIZEN.name(), null);
+        String json = """
+                {"title":"Pothole on Main St","description":"Large pothole blocking traffic",
+                 "categoryId":%d,"latitude":55.0000000,"longitude":55.0000000,"confirmDuplicateOfId":%d}"""
+                .formatted(pothole.getId(), existing.getId());
+        MockMultipartFile data = new MockMultipartFile("data", "", "application/json", json.getBytes());
+
+        mockMvc.perform(multipart("/api/reports").file(data)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(existing.getId()));
+
+        mockMvc.perform(multipart("/api/reports").file(data)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isConflict());
+    }
+
     private String adminToken() {
         User admin = userRepository.findByEmail("admin@scirs.gov").orElseThrow();
         return jwtUtil.generateToken(admin.getId(), admin.getEmail(), RoleName.ADMIN.name(), null);
     }
 
     private Report persistReport(User reporter, Category category, Department department, ReportStatus status) {
+        return persistReport(reporter, category, department, status, "16.8409000", "96.1735000");
+    }
+
+    private Report persistReport(User reporter, Category category, Department department, ReportStatus status,
+                                  String latitude, String longitude) {
         Report report = new Report();
         report.setReportCode("RPT-TEST-" + System.nanoTime());
         report.setTitle("Test report");
@@ -319,8 +448,8 @@ class ReportControllerIntegrationTest {
         report.setDepartment(department);
         report.setReporter(reporter);
         report.setStatus(status);
-        report.setLatitude(new BigDecimal("16.8409000"));
-        report.setLongitude(new BigDecimal("96.1735000"));
+        report.setLatitude(new BigDecimal(latitude));
+        report.setLongitude(new BigDecimal(longitude));
         return reportRepository.save(report);
     }
 

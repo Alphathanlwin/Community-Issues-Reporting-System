@@ -8,6 +8,7 @@ import com.uit.scirs.report.dto.RejectReportDTO;
 import com.uit.scirs.report.dto.ReportCommentDTO;
 import com.uit.scirs.report.dto.ReportDTO;
 import com.uit.scirs.report.dto.ReportMapDTO;
+import com.uit.scirs.report.dto.ReportSubmissionResultDTO;
 import com.uit.scirs.report.dto.ReportStatusHistoryDTO;
 import com.uit.scirs.report.dto.UpdateReportPriorityDTO;
 import com.uit.scirs.report.dto.UpdateReportStatusDTO;
@@ -63,11 +64,15 @@ public class ReportController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('CITIZEN')")
-    public ResponseEntity<ReportDTO> createReport(@Valid @RequestPart("data") CreateReportDTO dto,
-                                                   @RequestPart(value = "images", required = false) List<MultipartFile> images,
-                                                   @AuthenticationPrincipal CurrentUser currentUser) {
-        ReportDTO created = reportService.createReport(dto, images, currentUser.getId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    public ResponseEntity<?> createReport(@Valid @RequestPart("data") CreateReportDTO dto,
+                                           @RequestPart(value = "images", required = false) List<MultipartFile> images,
+                                           @AuthenticationPrincipal CurrentUser currentUser) {
+        ReportSubmissionResultDTO result = reportService.submitReport(dto, images, currentUser.getId());
+        return switch (result.getOutcome()) {
+            case CREATED -> ResponseEntity.status(HttpStatus.CREATED).body(result.getReport());
+            case CONFIRMED -> ResponseEntity.ok(result.getReport());
+            case DUPLICATES_FOUND -> ResponseEntity.ok(result.getDuplicateCheck());
+        };
     }
 
     @GetMapping

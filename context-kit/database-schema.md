@@ -7,7 +7,7 @@
 | Database | PostgreSQL 15+ |
 | ORM | Hibernate (via Spring Data JPA) |
 | Schema Management | Hibernate auto-generation from entity annotations (`ddl-auto=update` in dev) |
-| Total Tables | 11 |
+| Total Tables | 12 |
 | Seed Data | Roles, one Admin user, 6 departments, default categories — loaded by `common/config/DataSeeder` on startup |
 
 > **NEVER guess a field, type, or enum value. This file is the single source of truth.**
@@ -119,6 +119,7 @@ Single table for all three roles (see Decision D5 in `project-overview.md`).
 | longitude | DECIMAL(10,7) | NOT NULL |
 | address_text | VARCHAR | Reverse-geocoded or typed by the citizen |
 | rejection_reason | VARCHAR | Required when status = `REJECTED` |
+| duplicate_checked | BOOLEAN | NOT NULL, default false — set true only when a citizen explicitly dismissed a duplicate warning ("No, this is different"); see `DuplicateDetectionService` |
 | created_at | TIMESTAMP | NOT NULL |
 | updated_at | TIMESTAMP | |
 | approved_at | TIMESTAMP | |
@@ -245,9 +246,24 @@ Immutable ledger backing the leaderboard.
 | reason | VARCHAR (Enum → `PointReason`) | NOT NULL |
 | created_at | TIMESTAMP | NOT NULL |
 
-**Enum: `PointReason`** — `REPORT_APPROVED` (+10), `REPORT_RESOLVED` (+20), `FEEDBACK_GIVEN` (+5), `REPORT_REJECTED` (−5)
+**Enum: `PointReason`** — `REPORT_APPROVED` (+10), `REPORT_RESOLVED` (+20), `FEEDBACK_GIVEN` (+5), `REPORT_REJECTED` (−5), `CONFIRMATION_GIVEN` (+3)
 
 Rule: a `(user_id, report_id, reason)` triple must be unique — never award the same event twice.
+
+---
+
+### 12. `report_confirmations`
+
+A citizen confirming "me too, this is the same issue" on an existing report instead of filing a duplicate (see `DuplicateDetectionService`, Decision D20).
+
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | BIGINT (PK) | Auto-increment |
+| report_id | BIGINT (FK) | → `reports.id`, NOT NULL |
+| citizen_id | BIGINT (FK) | → `users.id`, NOT NULL |
+| created_at | TIMESTAMP | NOT NULL |
+
+Constraint: UNIQUE `(report_id, citizen_id)` — a citizen can only confirm the same report once (pre-checked in `ReportService` before insert, same pattern as `feedback`'s one-per-report check, and backed by the DB unique constraint).
 
 ---
 
@@ -267,12 +283,13 @@ Rule: a `(user_id, report_id, reason)` triple must be unique — never award the
                                          │  ┌──────────┐
        (reporter) 1:N ───────────────────┴─▶│  Report  │
                                             └────┬─────┘
-                 ┌───────────────┬──────────────┼──────────────┐
-                 │ 1:N           │ 1:N          │ 1:N          │ 1:1
-                 ▼               ▼              ▼              ▼
-        ┌──────────────┐ ┌──────────────┐ ┌───────────┐ ┌──────────┐
-        │ ReportImage  │ │StatusHistory │ │  Comment  │ │ Feedback │
-        └──────────────┘ └──────────────┘ └───────────┘ └──────────┘
+                 ┌───────────────┬──────────────┼──────────────┬──────────────┐
+                 │ 1:N           │ 1:N          │ 1:N          │ 1:1          │ 1:N
+                 ▼               ▼              ▼              ▼              ▼
+        ┌──────────────┐ ┌──────────────┐ ┌───────────┐ ┌──────────┐ ┌──────────────┐
+        │ ReportImage  │ │StatusHistory │ │  Comment  │ │ Feedback │ │ Confirmation │
+        └──────────────┘ └──────────────┘ └───────────┘ └──────────┘ └──────────────┘
+                                                                        (also 1:N from User)
 ```
 
 ## Relationships Summary
@@ -292,6 +309,8 @@ Rule: a `(user_id, report_id, reason)` triple must be unique — never award the
 | Report → Feedback | 1:1 | Unique constraint on report_id |
 | User → Notification | 1:N | Cascade on user delete |
 | User → PointTransaction | 1:N | Append-only ledger |
+| Report → ReportConfirmation | 1:N | Unique per `(report_id, citizen_id)` |
+| User (citizen) → ReportConfirmation | 1:N | A citizen may confirm many different reports, but each report only once |
 
 ## Repository Layer
 
@@ -301,10 +320,11 @@ Rule: a `(user_id, report_id, reason)` triple must be unique — never award the
 | `UserRepository` | `findByEmail()`, `existsByEmail()`, `existsByPhone()`, `existsByNrcNumber()`, `findByAccountStatus()`, `findByRoleName()`, `findByRoleNameAndAccountStatus()`, `findByDepartmentId()`, `findTop10ByRoleNameOrderByCreatedAtDesc()`, `countByAccountStatus()` |
 | `DepartmentRepository` | `findByName()`, `findByActiveTrue()` |
 | `CategoryRepository` | `findByName()`, `findByActiveTrue()`, `findByDepartmentId()` |
-| `ReportRepository` | `findByReporterId()`, `findByStatus()`, `findByDepartmentId()`, `findByDepartmentIdAndStatus()`, `findByCategoryId()`, `findByCreatedAtBetween()`, `findByReportCode()`, `countByStatus()`, `countByDepartmentIdAndStatus()`, `findByStatusAndCreatedAtBefore()` (waiting-too-long alerts), `findByLatitudeBetweenAndLongitudeBetween()` (map bounding box) |
+| `ReportRepository` | `findByReporterId()`, `findByStatus()`, `findByDepartmentId()`, `findByDepartmentIdAndStatus()`, `findByCategoryId()`, `findByCreatedAtBetween()`, `findByReportCode()`, `countByStatus()`, `countByDepartmentIdAndStatus()`, `findByStatusAndCreatedAtBefore()` (waiting-too-long alerts), `findByLatitudeBetweenAndLongitudeBetween()` (map bounding box), `findOpenCandidatesNear()` (`@Query` — category + non-terminal status + lat/lng bounding box, the pre-filter for `DuplicateDetectionService`'s Haversine pass) |
 | `ReportImageRepository` | `findByReportId()`, `findByReportIdAndImageType()` |
 | `ReportStatusHistoryRepository` | `findByReportIdOrderByChangedAtAsc()` |
 | `ReportCommentRepository` | `findByReportIdOrderByCreatedAtAsc()` |
+| `ReportConfirmationRepository` | `existsByReportIdAndCitizenId()` |
 | `FeedbackRepository` | `findByReportId()`, `existsByReportId()`, `findByCitizenId()` |
 | `NotificationRepository` | `findByRecipientIdOrderByCreatedAtDesc()`, `countByRecipientIdAndIsReadFalse()`, `findByRecipientIdAndIsReadFalse()` |
 | `PointTransactionRepository` | `findByUserIdOrderByCreatedAtDesc()`, `existsByUserIdAndReportIdAndReason()`, `sumPointsByUserId()` (`@Query`) |
@@ -321,7 +341,7 @@ Aggregate dashboard queries (issue volume by category, average resolution time, 
 | `ReportPriority` | `LOW`, `NORMAL`, `HIGH`, `URGENT` |
 | `ImageType` | `REPORT_PHOTO`, `RESOLUTION_PHOTO` |
 | `NotificationType` | `NEW_REPORT`, `URGENT_REPORT`, `REPORT_WAITING_TOO_LONG`, `DEPARTMENT_MENTION`, `STATUS_CHANGED`, `REPORT_APPROVED`, `REPORT_REJECTED`, `REPORT_COMPLETED`, `ACCOUNT_APPROVED`, `ACCOUNT_REJECTED` |
-| `PointReason` | `REPORT_APPROVED`, `REPORT_RESOLVED`, `FEEDBACK_GIVEN`, `REPORT_REJECTED` |
+| `PointReason` | `REPORT_APPROVED`, `REPORT_RESOLVED`, `FEEDBACK_GIVEN`, `REPORT_REJECTED`, `CONFIRMATION_GIVEN` |
 
 All enums are persisted with `@Enumerated(EnumType.STRING)` — never `ORDINAL`.
 

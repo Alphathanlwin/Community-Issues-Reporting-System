@@ -3,6 +3,7 @@ package com.uit.scirs.notification.controller;
 import com.uit.scirs.common.security.CurrentUser;
 import com.uit.scirs.notification.dto.NotificationDTO;
 import com.uit.scirs.notification.service.NotificationService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,6 +19,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/notifications")
+@Tag(name = "Notifications", description = "Own notifications: list, unread count, mark read")
 public class NotificationController {
 
     private final NotificationService notificationService;

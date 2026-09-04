@@ -4,6 +4,7 @@ import com.uit.scirs.category.dto.CategoryDTO;
 import com.uit.scirs.category.dto.CreateCategoryDTO;
 import com.uit.scirs.category.dto.UpdateCategoryDTO;
 import com.uit.scirs.category.service.CategoryService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/categories")
+@Tag(name = "Categories", description = "CRUD; each category carries a default routing department")
 public class CategoryController {
 
     private final CategoryService categoryService;

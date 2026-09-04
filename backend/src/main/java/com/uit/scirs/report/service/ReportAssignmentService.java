@@ -62,7 +62,6 @@ public class ReportAssignmentService {
             throw new BusinessRuleException("Cannot reassign a report in status " + report.getStatus());
         }
 
-        User adminUser = findUser(admin.getId());
         List<String> remarks = new ArrayList<>();
         Department targetDepartment = report.getDepartment();
 
@@ -78,6 +77,10 @@ public class ReportAssignmentService {
             remarks.add("Assigned to " + staff.getFullName() + ".");
         }
 
+        // Resolved last: only needed to attribute the audit-log row below, so
+        // every request-validation failure above must surface its own
+        // exception rather than a misleading "acting user not found".
+        User adminUser = findUser(admin.getId());
         Report saved = reportRepository.save(report);
         statusHistoryService.record(saved, saved.getStatus(), saved.getStatus(), adminUser, String.join(" ", remarks));
 

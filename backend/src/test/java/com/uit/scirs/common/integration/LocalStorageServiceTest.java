@@ -21,7 +21,7 @@ class LocalStorageServiceTest {
     Path tempDir;
 
     private LocalStorageService storageService(Path root) {
-        return new LocalStorageService(root.toString());
+        return new LocalStorageService(root.toString(), new ImageValidator());
     }
 
     @Test

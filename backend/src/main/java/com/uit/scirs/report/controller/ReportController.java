@@ -174,4 +174,11 @@ public class ReportController {
             @AuthenticationPrincipal CurrentUser currentUser) {
         return ResponseEntity.ok(reportService.getMapPins(categoryId, status, minLat, maxLat, minLng, maxLng, currentUser));
     }
+
+    // Cached (see CacheConfig.PUBLIC_MAP) — unfiltered, citizen-visible pins only.
+    @GetMapping("/map/public")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF','CITIZEN')")
+    public ResponseEntity<List<ReportMapDTO>> getPublicMapPins() {
+        return ResponseEntity.ok(reportService.getApprovedMapReports());
+    }
 }

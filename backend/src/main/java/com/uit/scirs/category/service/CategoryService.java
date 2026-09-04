@@ -6,11 +6,14 @@ import com.uit.scirs.category.dto.UpdateCategoryDTO;
 import com.uit.scirs.category.entity.Category;
 import com.uit.scirs.category.mapper.CategoryMapper;
 import com.uit.scirs.category.repository.CategoryRepository;
+import com.uit.scirs.common.config.CacheConfig;
 import com.uit.scirs.common.exception.BusinessRuleException;
 import com.uit.scirs.common.exception.DuplicateResourceException;
 import com.uit.scirs.common.exception.ResourceNotFoundException;
 import com.uit.scirs.department.entity.Department;
 import com.uit.scirs.department.repository.DepartmentRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +34,7 @@ public class CategoryService {
         this.categoryMapper = categoryMapper;
     }
 
+    @Cacheable(CacheConfig.CATEGORIES)
     @Transactional(readOnly = true)
     public List<CategoryDTO> getAll() {
         return categoryMapper.toDTOList(categoryRepository.findAll());
@@ -41,6 +45,7 @@ public class CategoryService {
         return categoryMapper.toDTO(findEntity(id));
     }
 
+    @CacheEvict(value = CacheConfig.CATEGORIES, allEntries = true)
     @Transactional
     public CategoryDTO create(CreateCategoryDTO dto) {
         if (categoryRepository.findByName(dto.getName()).isPresent()) {
@@ -59,6 +64,7 @@ public class CategoryService {
         return categoryMapper.toDTO(categoryRepository.save(category));
     }
 
+    @CacheEvict(value = CacheConfig.CATEGORIES, allEntries = true)
     @Transactional
     public CategoryDTO update(Long id, UpdateCategoryDTO dto) {
         Category category = findEntity(id);
@@ -80,6 +86,7 @@ public class CategoryService {
         return categoryMapper.toDTO(categoryRepository.save(category));
     }
 
+    @CacheEvict(value = CacheConfig.CATEGORIES, allEntries = true)
     @Transactional
     public void delete(Long id) {
         Category category = findEntity(id);

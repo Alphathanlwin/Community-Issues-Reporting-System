@@ -2,6 +2,7 @@ package com.uit.scirs.report.service;
 
 import com.uit.scirs.category.entity.Category;
 import com.uit.scirs.category.repository.CategoryRepository;
+import com.uit.scirs.common.config.CacheConfig;
 import com.uit.scirs.common.exception.BusinessRuleException;
 import com.uit.scirs.common.exception.ResourceNotFoundException;
 import com.uit.scirs.common.integration.FileStorageService;
@@ -24,6 +25,7 @@ import com.uit.scirs.user.entity.RoleName;
 import com.uit.scirs.user.entity.User;
 import com.uit.scirs.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -144,6 +146,23 @@ public class ReportService {
         boolean restrictToPublic = currentUser.getRole() == RoleName.CITIZEN;
         List<Report> reports = reportRepository.findForMap(categoryId, status, minLat, maxLat, minLng, maxLng,
                 restrictToPublic, HIDDEN_FROM_CITIZENS);
+        return reportMapper.toMapDTOList(reports);
+    }
+
+    /**
+     * Unfiltered, citizen-visible map pins — the same subset any citizen may
+     * see, so it's safe to share one cache entry across every caller
+     * regardless of role. Deliberately NOT the same method as
+     * {@link #getMapPins}: that one takes per-request filters and honors
+     * role-based visibility (staff/admins additionally see PENDING_APPROVAL
+     * and REJECTED reports), so caching it directly by its argument list
+     * risks serving one user's role-restricted result to another.
+     */
+    @Cacheable(CacheConfig.PUBLIC_MAP)
+    @Transactional(readOnly = true)
+    public List<ReportMapDTO> getApprovedMapReports() {
+        List<Report> reports = reportRepository.findForMap(null, null, null, null, null, null,
+                true, HIDDEN_FROM_CITIZENS);
         return reportMapper.toMapDTOList(reports);
     }
 

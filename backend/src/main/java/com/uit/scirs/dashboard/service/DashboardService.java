@@ -8,6 +8,7 @@ import com.uit.scirs.dashboard.dto.MonthlyReportCountDTO;
 import com.uit.scirs.dashboard.dto.StaffDashboardDTO;
 import com.uit.scirs.category.entity.Category;
 import com.uit.scirs.category.repository.CategoryRepository;
+import com.uit.scirs.common.config.CacheConfig;
 import com.uit.scirs.department.entity.Department;
 import com.uit.scirs.department.repository.DepartmentRepository;
 import com.uit.scirs.feedback.repository.DepartmentRatingProjection;
@@ -23,6 +24,7 @@ import com.uit.scirs.user.entity.AccountStatus;
 import com.uit.scirs.user.entity.RoleName;
 import com.uit.scirs.user.mapper.UserMapper;
 import com.uit.scirs.user.repository.UserRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -106,6 +108,11 @@ public class DashboardService {
         return dto;
     }
 
+    // Cross-department admin aggregate, no per-caller filtering — safe to
+    // share one cache entry. Evicted from ReportWorkflowService whenever a
+    // status transition moves a report between the open/resolved buckets
+    // this method counts.
+    @Cacheable(CacheConfig.DEPT_STATS)
     @Transactional(readOnly = true)
     public List<DepartmentPerformanceDTO> getDepartmentPerformance() {
         Map<Long, DepartmentStatusCountProjection> statusCounts = reportRepository

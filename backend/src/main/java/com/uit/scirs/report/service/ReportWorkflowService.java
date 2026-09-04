@@ -1,5 +1,6 @@
 package com.uit.scirs.report.service;
 
+import com.uit.scirs.common.config.CacheConfig;
 import com.uit.scirs.common.exception.BusinessRuleException;
 import com.uit.scirs.common.exception.InvalidStatusTransitionException;
 import com.uit.scirs.common.exception.ResourceNotFoundException;
@@ -20,6 +21,8 @@ import com.uit.scirs.score.service.ScoreService;
 import com.uit.scirs.user.entity.RoleName;
 import com.uit.scirs.user.entity.User;
 import com.uit.scirs.user.repository.UserRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -72,6 +75,12 @@ public class ReportWorkflowService {
         this.priorityService = priorityService;
     }
 
+    // Newly visible on the public map (leaves PENDING_APPROVAL) and enters
+    // the open-report bucket the department performance stats aggregate.
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.PUBLIC_MAP, allEntries = true),
+            @CacheEvict(value = CacheConfig.DEPT_STATS, allEntries = true)
+    })
     @Transactional
     public ReportDTO approve(Long reportId, CurrentUser admin) {
         Report report = findEntity(reportId);
@@ -103,6 +112,10 @@ public class ReportWorkflowService {
         return reportMapper.toDTO(saved);
     }
 
+    // REJECTED reports were never on the public map (HIDDEN_FROM_CITIZENS)
+    // and aren't counted in deptStats, but evict anyway so an admin who
+    // rejects right after browsing the map doesn't see a stale pin flicker.
+    @CacheEvict(value = CacheConfig.PUBLIC_MAP, allEntries = true)
     @Transactional
     public ReportDTO reject(Long reportId, String rejectionReason, CurrentUser admin) {
         Report report = findEntity(reportId);
@@ -124,6 +137,12 @@ public class ReportWorkflowService {
         return reportMapper.toDTO(saved);
     }
 
+    // Every reachable transition here changes either the map pin's status
+    // color or the open/resolved bucket deptStats aggregates over.
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.PUBLIC_MAP, allEntries = true),
+            @CacheEvict(value = CacheConfig.DEPT_STATS, allEntries = true)
+    })
     @Transactional
     public ReportDTO changeStatus(Long reportId, UpdateReportStatusDTO dto, CurrentUser currentUser) {
         Report report = findEntity(reportId);
@@ -164,6 +183,8 @@ public class ReportWorkflowService {
         return reportMapper.toDTO(saved);
     }
 
+    // Priority is rendered on the public map pins too.
+    @CacheEvict(value = CacheConfig.PUBLIC_MAP, allEntries = true)
     @Transactional
     public ReportDTO updatePriority(Long reportId, UpdateReportPriorityDTO dto, CurrentUser currentUser) {
         Report report = findEntity(reportId);

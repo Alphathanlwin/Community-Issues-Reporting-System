@@ -1,5 +1,6 @@
 package com.uit.scirs.department.service;
 
+import com.uit.scirs.common.config.CacheConfig;
 import com.uit.scirs.common.exception.DuplicateResourceException;
 import com.uit.scirs.common.exception.ResourceNotFoundException;
 import com.uit.scirs.department.dto.CreateDepartmentDTO;
@@ -8,6 +9,8 @@ import com.uit.scirs.department.dto.UpdateDepartmentDTO;
 import com.uit.scirs.department.entity.Department;
 import com.uit.scirs.department.mapper.DepartmentMapper;
 import com.uit.scirs.department.repository.DepartmentRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +27,7 @@ public class DepartmentService {
         this.departmentMapper = departmentMapper;
     }
 
+    @Cacheable(CacheConfig.DEPARTMENTS)
     public List<DepartmentDTO> getAll() {
         return departmentMapper.toDTOList(departmentRepository.findAll());
     }
@@ -32,6 +36,7 @@ public class DepartmentService {
         return departmentMapper.toDTO(findEntity(id));
     }
 
+    @CacheEvict(value = CacheConfig.DEPARTMENTS, allEntries = true)
     @Transactional
     public DepartmentDTO create(CreateDepartmentDTO dto) {
         if (departmentRepository.findByName(dto.getName()).isPresent()) {
@@ -42,6 +47,7 @@ public class DepartmentService {
         return departmentMapper.toDTO(saved);
     }
 
+    @CacheEvict(value = CacheConfig.DEPARTMENTS, allEntries = true)
     @Transactional
     public DepartmentDTO update(Long id, UpdateDepartmentDTO dto) {
         Department department = findEntity(id);
@@ -59,6 +65,7 @@ public class DepartmentService {
         return departmentMapper.toDTO(departmentRepository.save(department));
     }
 
+    @CacheEvict(value = CacheConfig.DEPARTMENTS, allEntries = true)
     @Transactional
     public void delete(Long id) {
         Department department = findEntity(id);

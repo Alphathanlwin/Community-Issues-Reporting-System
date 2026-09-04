@@ -1,5 +1,6 @@
 package com.uit.scirs.score.service;
 
+import com.uit.scirs.common.config.CacheConfig;
 import com.uit.scirs.common.exception.ResourceNotFoundException;
 import com.uit.scirs.report.entity.Report;
 import com.uit.scirs.score.dto.LeaderboardEntryDTO;
@@ -12,6 +13,7 @@ import com.uit.scirs.score.repository.PointTransactionRepository;
 import com.uit.scirs.user.entity.RoleName;
 import com.uit.scirs.user.entity.User;
 import com.uit.scirs.user.repository.UserRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -73,6 +75,9 @@ public class ScoreService {
         userRepository.save(user);
     }
 
+    // Not user-scoped — every caller with leaderboard access sees the same
+    // top-N citizens, so a single shared cache entry per `limit` is safe.
+    @Cacheable(CacheConfig.LEADERBOARD)
     @Transactional(readOnly = true)
     public List<LeaderboardEntryDTO> getLeaderboard(int limit) {
         List<User> ranked = userRepository.findByRoleNameOrderByScorePointsDescCreatedAtAsc(

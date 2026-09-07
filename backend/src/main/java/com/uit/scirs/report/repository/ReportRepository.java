@@ -2,6 +2,8 @@ package com.uit.scirs.report.repository;
 
 import com.uit.scirs.report.entity.Report;
 import com.uit.scirs.report.entity.ReportStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -38,6 +40,37 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
            ORDER BY r.createdAt DESC
            """)
     List<Report> search(ReportStatus status, Long categoryId, Long departmentId);
+
+    // Backs the console Reports list (ADMIN, and department-scoped STAFF). The
+    // status/category/department filters are optional — a null parameter is
+    // skipped. Result ordering and pagination come from the Pageable. Staff
+    // scoping is enforced by the service always supplying its own departmentId
+    // (never trusting a client-supplied one).
+    //
+    // `searchPattern`, `from` and `to` are ALWAYS bound to a non-null value by
+    // the service ("%" and open-ended sentinel dates when the caller supplies
+    // no filter). This is deliberate: a bare ":param IS NULL" test over a null
+    // String or LocalDateTime bind makes Hibernate 6 emit an untyped parameter
+    // that PostgreSQL rejects ("function lower(bytea) does not exist",
+    // "cannot cast type bytea to timestamp"). H2 tolerates it, so the failure
+    // only appears against PostgreSQL. `searchPattern` is pre-lowercased and
+    // already wrapped in '%'.
+    @Query("""
+           SELECT r FROM Report r
+           WHERE (:status IS NULL OR r.status = :status)
+             AND (:categoryId IS NULL OR r.category.id = :categoryId)
+             AND (:departmentId IS NULL OR r.department.id = :departmentId)
+             AND (LOWER(r.reportCode) LIKE :searchPattern OR LOWER(r.title) LIKE :searchPattern)
+             AND r.createdAt >= :from
+             AND r.createdAt < :to
+           """)
+    Page<Report> searchReports(ReportStatus status,
+                                Long categoryId,
+                                Long departmentId,
+                                String searchPattern,
+                                LocalDateTime from,
+                                LocalDateTime to,
+                                Pageable pageable);
 
     // Optional filters: category/status/bounding-box parameters are skipped when null.
     // restrictToPublic=true (citizens) additionally excludes hiddenStatuses.

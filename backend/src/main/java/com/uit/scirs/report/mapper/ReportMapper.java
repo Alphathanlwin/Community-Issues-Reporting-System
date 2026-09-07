@@ -96,6 +96,7 @@ public class ReportMapper {
         dto.setStatus(entity.getStatus().name());
         dto.setPriority(entity.getPriority().name());
         if (entity.getCategory() != null) {
+            dto.setCategoryId(entity.getCategory().getId());
             dto.setCategoryName(entity.getCategory().getName());
             dto.setCategoryColor(entity.getCategory().getColorHex());
         }

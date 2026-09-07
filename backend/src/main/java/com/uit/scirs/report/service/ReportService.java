@@ -7,6 +7,7 @@ import com.uit.scirs.common.exception.BusinessRuleException;
 import com.uit.scirs.common.exception.DuplicateResourceException;
 import com.uit.scirs.common.exception.ResourceNotFoundException;
 import com.uit.scirs.common.integration.FileStorageService;
+import com.uit.scirs.common.dto.PageResponse;
 import com.uit.scirs.common.security.CurrentUser;
 import com.uit.scirs.common.util.ReportCodeGenerator;
 import com.uit.scirs.notification.service.NotificationService;
@@ -34,6 +35,8 @@ import com.uit.scirs.user.entity.User;
 import com.uit.scirs.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -41,8 +44,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class ReportService {
@@ -206,13 +211,42 @@ public class ReportService {
         return reportMapper.toDTOList(reportRepository.findByStatusOrderByCreatedAtDesc(ReportStatus.PENDING_APPROVAL));
     }
 
+    /**
+     * The console Reports list — shared by the Admin and Staff shells. Staff
+     * are always scoped to their own department here regardless of any
+     * {@code departmentId} the client passed; admins may filter by department
+     * or see every one. {@code search} matches report code or title,
+     * {@code startDate}/{@code endDate} bound {@code createdAt} (inclusive of
+     * both whole days), and results are newest-first, paged per {@code pageable}.
+     */
     @Transactional(readOnly = true)
-    public List<ReportDTO> getReports(CurrentUser currentUser, ReportStatus status, Long categoryId, Long departmentId) {
+    public PageResponse<ReportDTO> getReports(CurrentUser currentUser,
+                                              ReportStatus status,
+                                              Long categoryId,
+                                              Long departmentId,
+                                              String search,
+                                              LocalDate startDate,
+                                              LocalDate endDate,
+                                              Pageable pageable) {
         Long effectiveDepartmentId = departmentId;
         if (currentUser.getRole() == RoleName.STAFF) {
             effectiveDepartmentId = currentUser.getDepartmentId();
         }
-        return reportMapper.toDTOList(reportRepository.search(status, categoryId, effectiveDepartmentId));
+
+        // The repository query takes non-null searchPattern/from/to only (see the
+        // note on ReportRepository.searchReports — null String/LocalDateTime
+        // binds break on PostgreSQL). "%" matches every report; the sentinel
+        // dates bound a range wide enough to include every row.
+        String searchPattern = (search == null || search.isBlank())
+                ? "%"
+                : "%" + search.trim().toLowerCase(Locale.ROOT) + "%";
+        LocalDateTime from = startDate != null ? startDate.atStartOfDay() : LocalDateTime.of(1970, 1, 1, 0, 0);
+        LocalDateTime to = endDate != null ? endDate.plusDays(1).atStartOfDay() : LocalDateTime.of(9999, 12, 31, 0, 0);
+
+        Page<ReportDTO> page = reportRepository
+                .searchReports(status, categoryId, effectiveDepartmentId, searchPattern, from, to, pageable)
+                .map(reportMapper::toDTO);
+        return PageResponse.from(page);
     }
 
     @Transactional(readOnly = true)

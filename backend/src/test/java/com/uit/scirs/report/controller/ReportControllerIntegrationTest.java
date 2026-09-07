@@ -201,6 +201,56 @@ class ReportControllerIntegrationTest {
     }
 
     @Test
+    void getReports_asStaff_returnsPagedEnvelopeScopedToOwnDepartment() throws Exception {
+        Department roads = departmentRepository.findByName("Roads").orElseThrow();
+        Department water = departmentRepository.findByName("Water").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Category leak = categoryRepository.findByName("Water Leakage / Drainage").orElseThrow();
+        User reporter = persistApprovedCitizen("list-scope-reporter@example.com");
+
+        Report roadsReport = persistReport(reporter, pothole, roads, ReportStatus.ASSIGNED);
+        persistReport(reporter, leak, water, ReportStatus.ASSIGNED);
+
+        String roadsStaffToken = jwtUtil.generateToken(1L, "list-roads-staff@example.com",
+                RoleName.STAFF.name(), roads.getId());
+
+        mockMvc.perform(get("/api/reports").header(HttpHeaders.AUTHORIZATION, "Bearer " + roadsStaffToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.totalElements").isNumber())
+                .andExpect(jsonPath("$.totalPages").isNumber())
+                .andExpect(jsonPath("$.content[?(@.departmentName == 'Water')]").isEmpty())
+                .andExpect(jsonPath("$.content[?(@.id == " + roadsReport.getId() + ")]").exists());
+    }
+
+    @Test
+    void getReports_withSearchTerm_matchesTitleCaseInsensitively() throws Exception {
+        Department roads = departmentRepository.findByName("Roads").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        User reporter = persistApprovedCitizen("list-search-reporter@example.com");
+
+        Report match = new Report();
+        match.setReportCode("RPT-SEARCH-" + System.nanoTime());
+        match.setTitle("Zephyr Lane sinkhole");
+        match.setDescription("A landmark title token no other seeded report uses.");
+        match.setCategory(pothole);
+        match.setDepartment(roads);
+        match.setReporter(reporter);
+        match.setStatus(ReportStatus.ASSIGNED);
+        match.setLatitude(new BigDecimal("16.8409000"));
+        match.setLongitude(new BigDecimal("96.1735000"));
+        reportRepository.save(match);
+
+        String adminToken = adminToken();
+
+        mockMvc.perform(get("/api/reports").param("search", "zephyr lane")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].title").value("Zephyr Lane sinkhole"));
+    }
+
+    @Test
     void assign_withAdminAndValidDepartment_returns200AndUpdatesDepartment() throws Exception {
         Department roads = departmentRepository.findByName("Roads").orElseThrow();
         Department water = departmentRepository.findByName("Water").orElseThrow();

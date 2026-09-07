@@ -1,5 +1,6 @@
 package com.uit.scirs.report.controller;
 
+import com.uit.scirs.common.dto.PageResponse;
 import com.uit.scirs.common.security.CurrentUser;
 import com.uit.scirs.report.dto.AssignReportDTO;
 import com.uit.scirs.report.dto.CreateReportCommentDTO;
@@ -20,6 +21,10 @@ import com.uit.scirs.report.service.ReportWorkflowService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +44,7 @@ import org.springframework.web.multipart.MultipartFile;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -75,13 +81,28 @@ public class ReportController {
         };
     }
 
+    // Newest-first, paged. `search` matches report code or title; `startDate`
+    // / `endDate` are yyyy-MM-dd and bound the submission date inclusively.
+    // Staff callers are scoped to their own department in the service, so any
+    // client-supplied departmentId is ignored for them.
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
-    public ResponseEntity<List<ReportDTO>> getReports(@RequestParam(required = false) ReportStatus status,
-                                                       @RequestParam(required = false) Long categoryId,
-                                                       @RequestParam(required = false) Long departmentId,
-                                                       @AuthenticationPrincipal CurrentUser currentUser) {
-        return ResponseEntity.ok(reportService.getReports(currentUser, status, categoryId, departmentId));
+    public ResponseEntity<PageResponse<ReportDTO>> getReports(
+            @RequestParam(required = false) ReportStatus status,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long departmentId,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal CurrentUser currentUser) {
+        Pageable pageable = PageRequest.of(
+                Math.max(page, 0),
+                Math.min(Math.max(size, 1), 100),
+                Sort.by(Sort.Direction.DESC, "createdAt"));
+        return ResponseEntity.ok(reportService.getReports(
+                currentUser, status, categoryId, departmentId, search, startDate, endDate, pageable));
     }
 
     @GetMapping("/my")

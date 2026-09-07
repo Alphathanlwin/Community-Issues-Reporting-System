@@ -9,6 +9,7 @@ public class ReportMapDTO {
     private String reportCode;
     private BigDecimal latitude;
     private BigDecimal longitude;
+    private Long categoryId;
     private String categoryName;
     private String categoryColor;
     private String status;
@@ -45,6 +46,14 @@ public class ReportMapDTO {
 
     public void setLongitude(BigDecimal longitude) {
         this.longitude = longitude;
+    }
+
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
     }
 
     public String getCategoryName() {

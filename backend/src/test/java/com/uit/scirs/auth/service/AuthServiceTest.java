@@ -1,7 +1,9 @@
 package com.uit.scirs.auth.service;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.uit.scirs.auth.dto.AuthResponseDTO;
 import com.uit.scirs.auth.dto.CitizenRegisterDTO;
+import com.uit.scirs.auth.dto.GoogleAuthRequestDTO;
 import com.uit.scirs.auth.dto.LoginRequestDTO;
 import com.uit.scirs.auth.dto.RegisterResponseDTO;
 import com.uit.scirs.auth.mapper.AuthMapper;
@@ -97,6 +99,88 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.login(dto))
                 .isInstanceOf(AccountNotApprovedException.class);
+    }
+
+    @Test
+    void loginWithGoogle_whenClientIdNotConfigured_throwsBadCredentialsException() {
+        // @InjectMocks builds authService with googleClientId = null (Mockito
+        // cannot resolve @Value), matching an unconfigured GOOGLE_OAUTH_CLIENT_ID.
+        GoogleAuthRequestDTO dto = new GoogleAuthRequestDTO();
+        dto.setIdToken("any-token");
+
+        assertThatThrownBy(() -> authService.loginWithGoogle(dto))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessageContaining("not configured");
+    }
+
+    @Test
+    void authenticateGooglePayload_withUnverifiedEmail_throwsBadCredentialsException() {
+        GoogleIdToken.Payload payload = googlePayload("citizen@example.com", false);
+
+        assertThatThrownBy(() -> authService.authenticateGooglePayload(payload))
+                .isInstanceOf(BadCredentialsException.class);
+
+        verify(userRepository, never()).findByEmail(anyString());
+    }
+
+    @Test
+    void authenticateGooglePayload_withApprovedExistingAccount_returnsAuthResponseWithToken() {
+        Role citizenRole = new Role(RoleName.CITIZEN, "Citizen");
+        User user = approvedUser(citizenRole);
+        GoogleIdToken.Payload payload = googlePayload("citizen@example.com", true);
+
+        when(userRepository.findByEmail("citizen@example.com")).thenReturn(Optional.of(user));
+        when(jwtUtil.generateToken(user.getId(), user.getEmail(), "CITIZEN", null)).thenReturn("jwt-token");
+        when(authMapper.toAuthResponse(user, "jwt-token"))
+                .thenReturn(new AuthResponseDTO("jwt-token", user.getId(), user.getFullName(), user.getEmail(),
+                        "CITIZEN", null, "APPROVED"));
+
+        AuthResponseDTO result = authService.authenticateGooglePayload(payload);
+
+        assertThat(result.getToken()).isEqualTo("jwt-token");
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void authenticateGooglePayload_withPendingExistingAccount_throwsAccountNotApprovedException() {
+        Role citizenRole = new Role(RoleName.CITIZEN, "Citizen");
+        User user = approvedUser(citizenRole);
+        user.setAccountStatus(AccountStatus.PENDING);
+        GoogleIdToken.Payload payload = googlePayload("citizen@example.com", true);
+
+        when(userRepository.findByEmail("citizen@example.com")).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> authService.authenticateGooglePayload(payload))
+                .isInstanceOf(AccountNotApprovedException.class);
+    }
+
+    @Test
+    void authenticateGooglePayload_withNoMatchingAccount_createsPendingCitizenAccount() {
+        Role citizenRole = new Role(RoleName.CITIZEN, "Citizen");
+        GoogleIdToken.Payload payload = googlePayload("newperson@example.com", true);
+        payload.set("name", "New Person").set("picture", "https://example.com/pic.jpg");
+
+        when(userRepository.findByEmail("newperson@example.com")).thenReturn(Optional.empty());
+        when(roleRepository.findByName(RoleName.CITIZEN)).thenReturn(Optional.of(citizenRole));
+        when(passwordEncoder.encode(anyString())).thenReturn("random-unusable-hash");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        assertThatThrownBy(() -> authService.authenticateGooglePayload(payload))
+                .isInstanceOf(AccountNotApprovedException.class);
+
+        ArgumentCaptor<User> savedUser = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(savedUser.capture());
+        User created = savedUser.getValue();
+        assertThat(created.getRole()).isEqualTo(citizenRole);
+        assertThat(created.getAccountStatus()).isEqualTo(AccountStatus.PENDING);
+        assertThat(created.getEmail()).isEqualTo("newperson@example.com");
+        assertThat(created.getFullName()).isEqualTo("New Person");
+        assertThat(created.getProfileImageUrl()).isEqualTo("https://example.com/pic.jpg");
+        assertThat(created.getPasswordHash()).isEqualTo("random-unusable-hash");
+    }
+
+    private GoogleIdToken.Payload googlePayload(String email, boolean emailVerified) {
+        return new GoogleIdToken.Payload().setEmail(email).setEmailVerified(emailVerified);
     }
 
     @Test

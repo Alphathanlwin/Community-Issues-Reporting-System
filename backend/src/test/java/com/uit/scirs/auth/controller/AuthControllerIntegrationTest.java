@@ -69,6 +69,27 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
+    void google_withoutClientIdConfigured_returns401() throws Exception {
+        // application-test.properties leaves google.oauth.client-id unset — this
+        // also proves the endpoint is public (no JWT needed to reach that check).
+        mockMvc.perform(post("/api/auth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"idToken":"any-token"}"""))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Google sign-in is not configured on this server"));
+    }
+
+    @Test
+    void google_withBlankIdToken_returns400() throws Exception {
+        mockMvc.perform(post("/api/auth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"idToken":""}"""))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void me_withoutToken_returns401() throws Exception {
         mockMvc.perform(get("/api/auth/me")).andExpect(status().isUnauthorized());
     }

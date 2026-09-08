@@ -44,7 +44,7 @@ public class SecurityConfig {
                         .accessDeniedHandler((request, response, ex) ->
                                 writeError(response, HttpStatus.FORBIDDEN, "You do not have permission to access this resource")))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/google").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         // Live API docs (see common/config/OpenApiConfig.java) — read-only
                         // documentation, no data access; safe to expose unauthenticated the

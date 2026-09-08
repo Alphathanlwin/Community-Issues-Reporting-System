@@ -57,7 +57,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException ex) {
-        return build(HttpStatus.UNAUTHORIZED, "Invalid email or password");
+        // Every throw site (password login AND Google sign-in, see AuthService)
+        // already sets a specific, user-safe message — surface it instead of a
+        // one-size-fits-all string, falling back only if a message is somehow absent.
+        return build(HttpStatus.UNAUTHORIZED, ex.getMessage() != null ? ex.getMessage() : "Invalid email or password");
     }
 
     @ExceptionHandler(AccessDeniedException.class)

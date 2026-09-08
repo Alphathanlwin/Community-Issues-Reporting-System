@@ -98,6 +98,32 @@ Failure modes: bad credentials → `401`; `accountStatus = PENDING` → `403` wi
 ### `GET /api/auth/me`
 Returns the current user's profile from the JWT. Used by the frontend on page refresh.
 
+### `POST /api/auth/google` — Google sign-in (public)
+
+```json
+{ "idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6..." }
+```
+
+`idToken` is the credential returned by Google Identity Services in the browser (see `GoogleSignInButton`). The backend verifies its signature and audience against `google.oauth.client-id` (`GOOGLE_OAUTH_CLIENT_ID`) before trusting anything in it.
+
+Response `200` — identical shape to `POST /api/auth/login`:
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "userId": 42,
+  "fullName": "Aung Aung",
+  "email": "aung@example.com",
+  "role": "CITIZEN",
+  "departmentId": null,
+  "accountStatus": "PENDING"
+}
+```
+
+Behavior:
+- The verified token's `email` is looked up in `users`. If it matches an existing account (any role), that account logs in — Google having verified the email makes this as trustworthy as a password login.
+- If no account matches, a new `CITIZEN` account is self-registered exactly like `POST /api/auth/register` (`accountStatus = PENDING`, `fullName`/`profileImageUrl` taken from the Google profile, `dateOfBirth`/`nrcNumber` left null), and requires the same admin approval before it can be used.
+- Failure modes: unverified Google email or an invalid/expired token → `401`; `accountStatus` not yet `APPROVED` (freshly auto-created or otherwise) → `403`, same messages as `/login`; `GOOGLE_OAUTH_CLIENT_ID` unset on the server → `401` "Google sign-in is not configured on this server".
+
 ---
 
 ## Departments & Categories Endpoints

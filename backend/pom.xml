@@ -102,6 +102,14 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Google OAuth (verifies the ID token from the frontend's Google Identity
+             Services button server-side) — see AuthService.loginWithGoogle -->
+        <dependency>
+            <groupId>com.google.api-client</groupId>
+            <artifactId>google-api-client</artifactId>
+            <version>2.7.0</version>
+        </dependency>
+
         <!-- OpenAPI / Swagger UI — generated live from the controllers/DTOs below,
              see common/config/OpenApiConfig.java -->
         <dependency>

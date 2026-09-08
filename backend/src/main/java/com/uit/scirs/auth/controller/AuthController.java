@@ -2,6 +2,7 @@ package com.uit.scirs.auth.controller;
 
 import com.uit.scirs.auth.dto.AuthResponseDTO;
 import com.uit.scirs.auth.dto.CitizenRegisterDTO;
+import com.uit.scirs.auth.dto.GoogleAuthRequestDTO;
 import com.uit.scirs.auth.dto.LoginRequestDTO;
 import com.uit.scirs.auth.dto.RegisterResponseDTO;
 import com.uit.scirs.auth.dto.UserDTO;
@@ -32,6 +33,11 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody LoginRequestDTO dto) {
         return ResponseEntity.ok(authService.login(dto));
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponseDTO> loginWithGoogle(@Valid @RequestBody GoogleAuthRequestDTO dto) {
+        return ResponseEntity.ok(authService.loginWithGoogle(dto));
     }
 
     @PostMapping("/register")

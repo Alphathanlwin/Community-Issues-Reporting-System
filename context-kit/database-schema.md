@@ -57,6 +57,7 @@ Single table for all three roles (see Decision D5 in `project-overview.md`).
 - `role = STAFF` → `department_id` required, `nrc_number` may be null
 - `role = ADMIN` → seeded only, `account_status = APPROVED`
 - Admin and staff accounts are created with `account_status = APPROVED` immediately
+- Google sign-in (`POST /api/auth/google`, see `api-standards.md`) reuses this table with no new columns: a matching `email` logs the existing account in, otherwise it self-registers a `role = CITIZEN`, `account_status = PENDING` row the same way `POST /api/auth/register` does. `password_hash` still gets a value (NOT NULL) — a random BCrypt hash the user never sees, since the row is only ever reached through Google, never the password form.
 
 ---
 

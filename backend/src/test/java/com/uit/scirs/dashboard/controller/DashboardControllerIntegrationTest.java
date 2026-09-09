@@ -101,7 +101,7 @@ class DashboardControllerIntegrationTest {
         mockMvc.perform(get("/api/dashboard/departments").header(HttpHeaders.AUTHORIZATION, "Bearer " + staffToken(roadsDepartment().getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(org.hamcrest.Matchers.greaterThanOrEqualTo(6)))
-                .andExpect(jsonPath("$[?(@.departmentName == 'Roads')]").exists());
+                .andExpect(jsonPath("$[?(@.departmentName == 'Roads & Bridges Department')]").exists());
     }
 
     @Test
@@ -115,7 +115,7 @@ class DashboardControllerIntegrationTest {
         mockMvc.perform(get("/api/dashboard/categories").header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(org.hamcrest.Matchers.greaterThanOrEqualTo(6)))
-                .andExpect(jsonPath("$[?(@.categoryName == 'Pothole / Damaged Road')]").exists());
+                .andExpect(jsonPath("$[?(@.categoryName == 'Pothole / Damaged Road Surface')]").exists());
     }
 
     @Test
@@ -139,11 +139,11 @@ class DashboardControllerIntegrationTest {
     }
 
     private Department roadsDepartment() {
-        return departmentRepository.findByName("Roads").orElseThrow();
+        return departmentRepository.findByName("Roads & Bridges Department").orElseThrow();
     }
 
     private Category potholeCategory() {
-        return categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        return categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
     }
 
     private User persistCitizen(String email, AccountStatus status) {

@@ -32,7 +32,7 @@ class DepartmentControllerIntegrationTest {
         mockMvc.perform(get("/api/departments").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()", org.hamcrest.Matchers.greaterThanOrEqualTo(6)))
-                .andExpect(jsonPath("$[?(@.name == 'Roads')]").exists());
+                .andExpect(jsonPath("$[?(@.name == 'Roads & Bridges Department')]").exists());
     }
 
     @Test
@@ -86,7 +86,7 @@ class DepartmentControllerIntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Roads","description":"dup","contactEmail":"dup@scirs.gov"}"""))
+                                {"name":"Roads & Bridges Department","description":"dup","contactEmail":"dup@scirs.gov"}"""))
                 .andExpect(status().isConflict());
     }
 

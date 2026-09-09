@@ -36,8 +36,8 @@ class CategoryServiceTest {
 
     @Test
     void create_withActiveDepartment_savesCategory() {
-        Department roads = department(2L, "Roads", true);
-        CreateCategoryDTO dto = createDto("Pothole / Damaged Road", 2L);
+        Department roads = department(2L, "Roads & Bridges Department", true);
+        CreateCategoryDTO dto = createDto("Pothole / Damaged Road Surface", 2L);
 
         when(categoryRepository.findByName(dto.getName())).thenReturn(Optional.empty());
         when(departmentRepository.findById(2L)).thenReturn(Optional.of(roads));
@@ -56,8 +56,8 @@ class CategoryServiceTest {
 
     @Test
     void create_withInactiveDepartment_throwsBusinessRuleException() {
-        Department roads = department(2L, "Roads", false);
-        CreateCategoryDTO dto = createDto("Pothole / Damaged Road", 2L);
+        Department roads = department(2L, "Roads & Bridges Department", false);
+        CreateCategoryDTO dto = createDto("Pothole / Damaged Road Surface", 2L);
 
         when(categoryRepository.findByName(dto.getName())).thenReturn(Optional.empty());
         when(departmentRepository.findById(2L)).thenReturn(Optional.of(roads));
@@ -70,7 +70,7 @@ class CategoryServiceTest {
 
     @Test
     void create_withUnknownDepartment_throwsResourceNotFoundException() {
-        CreateCategoryDTO dto = createDto("Pothole / Damaged Road", 99L);
+        CreateCategoryDTO dto = createDto("Pothole / Damaged Road Surface", 99L);
 
         when(categoryRepository.findByName(dto.getName())).thenReturn(Optional.empty());
         when(departmentRepository.findById(99L)).thenReturn(Optional.empty());
@@ -83,9 +83,9 @@ class CategoryServiceTest {
 
     @Test
     void create_withDuplicateName_throwsDuplicateResourceException() {
-        CreateCategoryDTO dto = createDto("Pothole / Damaged Road", 2L);
+        CreateCategoryDTO dto = createDto("Pothole / Damaged Road Surface", 2L);
         when(categoryRepository.findByName(dto.getName()))
-                .thenReturn(Optional.of(category(1L, "Pothole / Damaged Road", department(2L, "Roads", true))));
+                .thenReturn(Optional.of(category(1L, "Pothole / Damaged Road Surface", department(2L, "Roads & Bridges Department", true))));
 
         assertThatThrownBy(() -> categoryService.create(dto))
                 .isInstanceOf(DuplicateResourceException.class);
@@ -95,7 +95,7 @@ class CategoryServiceTest {
 
     @Test
     void delete_setsActiveFalseInsteadOfRemovingRow() {
-        Category entity = category(1L, "Garbage / Sanitation", department(4L, "Sanitation", true));
+        Category entity = category(1L, "Uncollected Garbage", department(4L, "Urban Environmental Conservation & Cleansing Department", true));
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(entity));
         when(categoryRepository.save(any(Category.class))).thenAnswer(i -> i.getArgument(0));
 

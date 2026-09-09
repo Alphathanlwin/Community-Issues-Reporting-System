@@ -93,7 +93,9 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) {
         seedRoles();
-        seedDepartments();   // Electricity, Roads, Water, Sanitation, Parks, Buildings
+        seedDepartments();   // Roads & Bridges, Buildings, Water & Sanitation, Drainage
+                             // Management, Urban Env. Conservation & Cleansing,
+                             // Playgrounds/Parks & Gardens, YESC (7 total)
         seedCategories();    // each mapped to its default department
         seedAdminUser();     // only if no ADMIN exists
     }

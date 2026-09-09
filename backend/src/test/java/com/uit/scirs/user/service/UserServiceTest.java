@@ -49,7 +49,7 @@ class UserServiceTest {
     @Test
     void createStaff_withActiveDepartment_savesStaffWithApprovedStatus() {
         CreateStaffDTO dto = staffDto("staff@example.com", 2L);
-        Department roads = department(2L, "Roads", true);
+        Department roads = department(2L, "Roads & Bridges Department", true);
         Role staffRole = new Role(RoleName.STAFF, "Department-scoped console access");
 
         when(userRepository.existsByEmail(dto.getEmail())).thenReturn(false);
@@ -76,7 +76,7 @@ class UserServiceTest {
         CreateStaffDTO dto = staffDto("staff@example.com", 2L);
         when(userRepository.existsByEmail(dto.getEmail())).thenReturn(false);
         when(userRepository.existsByPhone(dto.getPhone())).thenReturn(false);
-        when(departmentRepository.findById(2L)).thenReturn(Optional.of(department(2L, "Roads", false)));
+        when(departmentRepository.findById(2L)).thenReturn(Optional.of(department(2L, "Roads & Bridges Department", false)));
 
         assertThatThrownBy(() -> userService.createStaff(dto))
                 .isInstanceOf(BusinessRuleException.class);

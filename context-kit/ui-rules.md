@@ -90,7 +90,7 @@ Account statuses (`PENDING`, `APPROVED`, `REJECTED`, `SUSPENDED`) and priorities
 | Route | Page | Content |
 |-------|------|---------|
 | `/home` | Home | Greeting, own score card, own recent reports (3–5 rows with status badge), primary "Report an issue" button |
-| `/map` | Map | Full-height Leaflet map, filter chips (All, Electricity, Roads, Water, Sanitation, Parks, Buildings), tap a pin → bottom sheet with summary |
+| `/map` | Map | Full-height Leaflet map, filter chips (All, Roads & Bridges, Buildings, Water & Sanitation, Drainage Management, Cleansing, Parks & Gardens, YESC), tap a pin → bottom sheet with summary |
 | `/report` | New report | The submission flow (below) |
 | `/report/:id` | Report detail | Photos, status timeline, department, resolution photo, feedback form when resolved |
 | `/leaderboard` | Leaderboard | Ranked list; the current user's row is pinned and highlighted |
@@ -194,7 +194,7 @@ Four stat cards across the top — **Pending accounts**, **Pending reports**, **
 │ [Search…] [Status ▾] [Category ▾] [Department ▾] [Date ▾]   │
 ├────┬──────────┬──────────┬──────────┬────────┬─────────────┤
 │Code│ Title    │ Category │ Dept     │ Status │ Actions     │
-│…012│ Pothole  │ Roads    │ Roads    │ 🔵 Assigned│ [View]   │
+│…012│ Pothole  │ Roads    │ Roads&Br │ 🔵 Assigned│ [View]   │
 ├────┴──────────┴──────────┴──────────┴────────┴─────────────┤
 │ Showing 1–10 of 137                        [Pagination]     │
 └────────────────────────────────────────────────────────────┘

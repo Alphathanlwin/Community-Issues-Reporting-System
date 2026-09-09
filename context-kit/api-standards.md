@@ -275,9 +275,9 @@ Response (`ReportCommentDTO`):
   "reportId": 12,
   "authorId": 50,
   "authorName": "Thida Win",
-  "body": "Crew needs Water dept. to shut off the main first.",
+  "body": "Crew needs Water & Sanitation dept. to shut off the main first.",
   "mentionedDepartmentId": 3,
-  "mentionedDepartmentName": "Water",
+  "mentionedDepartmentName": "Water & Sanitation Department",
   "createdAt": "2026-08-17T09:00:00Z"
 }
 ```
@@ -296,7 +296,7 @@ Returns a **slim** payload — never the full report DTO:
     "reportCode": "RPT-2026-000012",
     "latitude": 16.8409,
     "longitude": 96.1735,
-    "categoryName": "Pothole / Damaged Road",
+    "categoryName": "Pothole / Damaged Road Surface",
     "categoryColor": "#F97316",
     "status": "ASSIGNED",
     "priority": "HIGH",
@@ -360,7 +360,7 @@ One row per department, including departments with zero reports. `averageResolut
 [
   {
     "departmentId": 2,
-    "departmentName": "Roads",
+    "departmentName": "Roads & Bridges Department",
     "openCount": 12,
     "resolvedCount": 30,
     "averageResolutionHours": 18.5,
@@ -375,7 +375,7 @@ One row per category, including categories with zero reports.
 
 ```json
 [
-  { "categoryId": 2, "categoryName": "Pothole / Damaged Road", "colorHex": "#F97316", "reportCount": 57 }
+  { "categoryId": 1, "categoryName": "Pothole / Damaged Road Surface", "colorHex": "#F97316", "reportCount": 57 }
 ]
 ```
 

@@ -46,7 +46,7 @@ class ReportCommentServiceTest {
 
     @Test
     void addComment_withoutMention_savesCommentAndDoesNotNotify() {
-        Department roads = department(2L, "Roads");
+        Department roads = department(2L, "Roads & Bridges Department");
         Report report = report(10L, roads);
         User author = user(50L, "Thida Win");
 
@@ -66,8 +66,8 @@ class ReportCommentServiceTest {
 
     @Test
     void addComment_withMentionedDepartment_notifiesThatDepartment() {
-        Department roads = department(2L, "Roads");
-        Department water = department(3L, "Water");
+        Department roads = department(2L, "Roads & Bridges Department");
+        Department water = department(3L, "Water & Sanitation Department");
         Report report = report(10L, roads);
         User author = user(50L, "Thida Win");
 
@@ -90,7 +90,7 @@ class ReportCommentServiceTest {
 
     @Test
     void getComments_whenStaffFromAnotherDepartment_throwsAccessDeniedException() {
-        Department roads = department(2L, "Roads");
+        Department roads = department(2L, "Roads & Bridges Department");
         Report report = report(10L, roads);
 
         when(reportRepository.findById(10L)).thenReturn(Optional.of(report));
@@ -101,7 +101,7 @@ class ReportCommentServiceTest {
 
     @Test
     void getComments_whenAdmin_returnsCommentsRegardlessOfDepartment() {
-        Department roads = department(2L, "Roads");
+        Department roads = department(2L, "Roads & Bridges Department");
         Report report = report(10L, roads);
 
         when(reportRepository.findById(10L)).thenReturn(Optional.of(report));
@@ -115,7 +115,7 @@ class ReportCommentServiceTest {
 
     @Test
     void addComment_withUnknownMentionedDepartment_throwsResourceNotFoundException() {
-        Department roads = department(2L, "Roads");
+        Department roads = department(2L, "Roads & Bridges Department");
         Report report = report(10L, roads);
         User author = user(50L, "Thida Win");
 

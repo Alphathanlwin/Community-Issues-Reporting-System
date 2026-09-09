@@ -33,11 +33,11 @@ class DepartmentServiceTest {
 
     @Test
     void create_withUniqueName_savesDepartment() {
-        CreateDepartmentDTO dto = createDto("Electricity");
-        Department entity = department(null, "Electricity", true);
-        Department saved = department(1L, "Electricity", true);
+        CreateDepartmentDTO dto = createDto("Yangon Electricity Supply Corporation (YESC)");
+        Department entity = department(null, "Yangon Electricity Supply Corporation (YESC)", true);
+        Department saved = department(1L, "Yangon Electricity Supply Corporation (YESC)", true);
 
-        when(departmentRepository.findByName("Electricity")).thenReturn(Optional.empty());
+        when(departmentRepository.findByName("Yangon Electricity Supply Corporation (YESC)")).thenReturn(Optional.empty());
         when(departmentMapper.toEntity(dto)).thenReturn(entity);
         when(departmentRepository.save(entity)).thenReturn(saved);
         when(departmentMapper.toDTO(saved)).thenReturn(dtoFor(saved));
@@ -45,13 +45,13 @@ class DepartmentServiceTest {
         DepartmentDTO result = departmentService.create(dto);
 
         assertThat(result.getId()).isEqualTo(1L);
-        assertThat(result.getName()).isEqualTo("Electricity");
+        assertThat(result.getName()).isEqualTo("Yangon Electricity Supply Corporation (YESC)");
     }
 
     @Test
     void create_withDuplicateName_throwsDuplicateResourceException() {
-        CreateDepartmentDTO dto = createDto("Roads");
-        when(departmentRepository.findByName("Roads")).thenReturn(Optional.of(department(1L, "Roads", true)));
+        CreateDepartmentDTO dto = createDto("Roads & Bridges Department");
+        when(departmentRepository.findByName("Roads & Bridges Department")).thenReturn(Optional.of(department(1L, "Roads & Bridges Department", true)));
 
         assertThatThrownBy(() -> departmentService.create(dto))
                 .isInstanceOf(DuplicateResourceException.class);
@@ -69,7 +69,7 @@ class DepartmentServiceTest {
 
     @Test
     void delete_setsActiveFalseInsteadOfRemovingRow() {
-        Department entity = department(1L, "Water", true);
+        Department entity = department(1L, "Water & Sanitation Department", true);
         when(departmentRepository.findById(1L)).thenReturn(Optional.of(entity));
         when(departmentRepository.save(any(Department.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -82,12 +82,12 @@ class DepartmentServiceTest {
 
     @Test
     void update_withNameBelongingToAnotherDepartment_throwsDuplicateResourceException() {
-        Department target = department(1L, "Water", true);
-        Department other = department(2L, "Sanitation", true);
-        UpdateDepartmentDTO dto = updateDto("Sanitation");
+        Department target = department(1L, "Water & Sanitation Department", true);
+        Department other = department(2L, "Urban Environmental Conservation & Cleansing Department", true);
+        UpdateDepartmentDTO dto = updateDto("Urban Environmental Conservation & Cleansing Department");
 
         when(departmentRepository.findById(1L)).thenReturn(Optional.of(target));
-        when(departmentRepository.findByName("Sanitation")).thenReturn(Optional.of(other));
+        when(departmentRepository.findByName("Urban Environmental Conservation & Cleansing Department")).thenReturn(Optional.of(other));
 
         assertThatThrownBy(() -> departmentService.update(1L, dto))
                 .isInstanceOf(DuplicateResourceException.class);

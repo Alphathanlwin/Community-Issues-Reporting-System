@@ -70,7 +70,9 @@ Single table for all three roles (see Decision D5 in `project-overview.md`).
 | contact_email | VARCHAR | |
 | is_active | BOOLEAN | NOT NULL, default true |
 
-**Seeded departments:** Electricity, Roads, Water, Sanitation, Parks, Buildings
+**Seeded departments (7):** Roads & Bridges Department, Buildings Department, Water & Sanitation
+Department, Drainage Management Department, Urban Environmental Conservation & Cleansing
+Department, Playgrounds, Parks & Gardens Department, Yangon Electricity Supply Corporation (YESC)
 
 ---
 
@@ -87,16 +89,24 @@ Single table for all three roles (see Decision D5 in `project-overview.md`).
 | is_active | BOOLEAN | NOT NULL, default true |
 | severity_weight | INTEGER | NOT NULL, default 3 — range 1 (minor) to 5 (severe); feeds `PriorityService`'s automatic priority score on report approval |
 
-**Seeded categories → department mapping:**
+**Seeded categories → department mapping (14):**
 
 | Category | Routes to |
 |----------|-----------|
-| Street Lighting / Power Outage | Electricity |
-| Pothole / Damaged Road | Roads |
-| Water Leakage / Drainage | Water |
-| Garbage / Sanitation | Sanitation |
-| Park & Public Space | Parks |
-| Damaged Public Building | Buildings |
+| Pothole / Damaged Road Surface | Roads & Bridges Department |
+| Damaged Footpath or Pedestrian Bridge | Roads & Bridges Department |
+| Unsafe or Damaged Public Building | Buildings Department |
+| Illegal or Unsafe Construction | Buildings Department |
+| Water Pipe Leak or Burst Main | Water & Sanitation Department |
+| Water Supply Failure | Water & Sanitation Department |
+| Blocked Drain or Clogged Culvert | Drainage Management Department |
+| Street Flooding | Drainage Management Department |
+| Uncollected Garbage | Urban Environmental Conservation & Cleansing Department |
+| Illegal Dumping | Urban Environmental Conservation & Cleansing Department |
+| Damaged Park or Playground Equipment | Playgrounds, Parks & Gardens Department |
+| Fallen Tree or Overgrown Vegetation | Playgrounds, Parks & Gardens Department |
+| Street Light Outage | Yangon Electricity Supply Corporation (YESC) |
+| Power Outage or Exposed Cable | Yangon Electricity Supply Corporation (YESC) |
 
 ---
 

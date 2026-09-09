@@ -47,7 +47,7 @@ class ReportWorkflowControllerIntegrationTest {
     @Test
     void approve_thenResolve_awardsPointsAndAllowsFeedback() throws Exception {
         User citizen = persistCitizen("wf-citizen1@example.com");
-        Category category = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Category category = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
         User staff = persistStaff("wf-staff1@example.com", category.getDepartment().getId());
         User admin = adminUser();
 
@@ -111,7 +111,7 @@ class ReportWorkflowControllerIntegrationTest {
     @Test
     void reject_withoutReason_returns400() throws Exception {
         User citizen = persistCitizen("wf-citizen2@example.com");
-        Category category = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Category category = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
         Report report = persistPendingReport(citizen, category);
         String adminToken = token(adminUser(), RoleName.ADMIN, null);
 
@@ -125,8 +125,8 @@ class ReportWorkflowControllerIntegrationTest {
     @Test
     void changeStatus_byStaffFromAnotherDepartment_returns403() throws Exception {
         User citizen = persistCitizen("wf-citizen3@example.com");
-        Category category = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
-        Long otherDepartmentId = departmentRepository.findByName("Water").orElseThrow().getId();
+        Category category = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
+        Long otherDepartmentId = departmentRepository.findByName("Water & Sanitation Department").orElseThrow().getId();
         User outsideStaff = persistStaff("wf-staff2@example.com", otherDepartmentId);
 
         Report report = persistPendingReport(citizen, category);

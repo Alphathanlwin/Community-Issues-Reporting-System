@@ -120,6 +120,7 @@ Single table for all three roles (see Decision D5 in `project-overview.md`).
 | address_text | VARCHAR | Reverse-geocoded or typed by the citizen |
 | rejection_reason | VARCHAR | Required when status = `REJECTED` |
 | duplicate_checked | BOOLEAN | NOT NULL, default false — set true only when a citizen explicitly dismissed a duplicate warning ("No, this is different"); see `DuplicateDetectionService` |
+| is_anonymous | BOOLEAN | NOT NULL, default false — opt-in at submission. When true the reporter is masked on the public feed ("Anonymous Citizen"); `reporter_id` is still stored so ADMIN/STAFF retain full accountability (pseudo-anonymous) |
 | created_at | TIMESTAMP | NOT NULL |
 | updated_at | TIMESTAMP | |
 | approved_at | TIMESTAMP | |

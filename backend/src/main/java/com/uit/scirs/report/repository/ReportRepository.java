@@ -4,6 +4,7 @@ import com.uit.scirs.report.entity.Report;
 import com.uit.scirs.report.entity.ReportStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -29,6 +30,13 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
     long countByStatus(ReportStatus status);
 
     List<Report> findByStatusInAndUpdatedAtBefore(List<ReportStatus> statuses, LocalDateTime cutoff);
+
+    // Citizen public feed ("What's happening in Yangon") — newest-first, paged.
+    // The service passes only the active middle statuses. The entity graph
+    // pre-loads the associations the public mapper reads so it stays a single
+    // round trip and works outside a lazy-friendly context.
+    @EntityGraph(attributePaths = {"category", "reporter", "images"})
+    Page<Report> findByStatusInOrderByCreatedAtDesc(List<ReportStatus> statuses, Pageable pageable);
 
     // Optional filters: any null parameter is skipped. Staff scoping is
     // enforced by the service always supplying its own departmentId.

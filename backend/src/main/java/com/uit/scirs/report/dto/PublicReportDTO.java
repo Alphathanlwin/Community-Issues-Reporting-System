@@ -2,31 +2,36 @@ package com.uit.scirs.report.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 
-public class ReportDTO {
+/**
+ * A report as seen on the citizen public feed ("What's happening in Yangon").
+ *
+ * <p>Identity is masked here <em>before it leaves the API</em>: when the report
+ * was submitted anonymously, {@code anonymous} is true and both
+ * {@code reporterName} and {@code reporterAvatarUrl} are null. The
+ * accountability copy (real reporter id/name) stays on {@link ReportDTO}, which
+ * only ADMIN and STAFF endpoints return.
+ */
+public class PublicReportDTO {
 
     private Long id;
     private String reportCode;
     private String title;
     private String description;
+    private Long categoryId;
+    private String categoryName;
+    private String categoryColor;
     private String status;
     private String priority;
     private Integer priorityScore;
     private BigDecimal latitude;
     private BigDecimal longitude;
     private String addressText;
-    private Long categoryId;
-    private String categoryName;
-    private Long departmentId;
-    private String departmentName;
-    private Long reporterId;
-    private String reporterName;
-    private boolean anonymous;
-    private Long assignedStaffId;
-    private String assignedStaffName;
-    private List<ReportImageDTO> images;
+    private String imageUrl;
     private LocalDateTime createdAt;
+    private boolean anonymous;
+    private String reporterName;
+    private String reporterAvatarUrl;
 
     public Long getId() {
         return id;
@@ -58,6 +63,30 @@ public class ReportDTO {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public String getCategoryName() {
+        return categoryName;
+    }
+
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
+    }
+
+    public String getCategoryColor() {
+        return categoryColor;
+    }
+
+    public void setCategoryColor(String categoryColor) {
+        this.categoryColor = categoryColor;
     }
 
     public String getStatus() {
@@ -108,52 +137,20 @@ public class ReportDTO {
         this.addressText = addressText;
     }
 
-    public Long getCategoryId() {
-        return categoryId;
+    public String getImageUrl() {
+        return imageUrl;
     }
 
-    public void setCategoryId(Long categoryId) {
-        this.categoryId = categoryId;
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
-    public String getCategoryName() {
-        return categoryName;
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 
-    public void setCategoryName(String categoryName) {
-        this.categoryName = categoryName;
-    }
-
-    public Long getDepartmentId() {
-        return departmentId;
-    }
-
-    public void setDepartmentId(Long departmentId) {
-        this.departmentId = departmentId;
-    }
-
-    public String getDepartmentName() {
-        return departmentName;
-    }
-
-    public void setDepartmentName(String departmentName) {
-        this.departmentName = departmentName;
-    }
-
-    public Long getReporterId() {
-        return reporterId;
-    }
-
-    public void setReporterId(Long reporterId) {
-        this.reporterId = reporterId;
-    }
-
-    public String getReporterName() {
-        return reporterName;
-    }
-
-    public void setReporterName(String reporterName) {
-        this.reporterName = reporterName;
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 
     public boolean isAnonymous() {
@@ -164,35 +161,19 @@ public class ReportDTO {
         this.anonymous = anonymous;
     }
 
-    public Long getAssignedStaffId() {
-        return assignedStaffId;
+    public String getReporterName() {
+        return reporterName;
     }
 
-    public void setAssignedStaffId(Long assignedStaffId) {
-        this.assignedStaffId = assignedStaffId;
+    public void setReporterName(String reporterName) {
+        this.reporterName = reporterName;
     }
 
-    public String getAssignedStaffName() {
-        return assignedStaffName;
+    public String getReporterAvatarUrl() {
+        return reporterAvatarUrl;
     }
 
-    public void setAssignedStaffName(String assignedStaffName) {
-        this.assignedStaffName = assignedStaffName;
-    }
-
-    public List<ReportImageDTO> getImages() {
-        return images;
-    }
-
-    public void setImages(List<ReportImageDTO> images) {
-        this.images = images;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
+    public void setReporterAvatarUrl(String reporterAvatarUrl) {
+        this.reporterAvatarUrl = reporterAvatarUrl;
     }
 }

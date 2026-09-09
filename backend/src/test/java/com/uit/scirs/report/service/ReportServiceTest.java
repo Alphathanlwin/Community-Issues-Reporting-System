@@ -5,12 +5,14 @@ import com.uit.scirs.category.repository.CategoryRepository;
 import com.uit.scirs.common.exception.BusinessRuleException;
 import com.uit.scirs.common.exception.DuplicateResourceException;
 import com.uit.scirs.common.exception.ResourceNotFoundException;
+import com.uit.scirs.common.dto.PageResponse;
 import com.uit.scirs.common.integration.FileStorageService;
 import com.uit.scirs.common.security.CurrentUser;
 import com.uit.scirs.common.util.ReportCodeGenerator;
 import com.uit.scirs.notification.service.NotificationService;
 import com.uit.scirs.report.dto.CreateReportDTO;
 import com.uit.scirs.report.dto.PossibleDuplicateDTO;
+import com.uit.scirs.report.dto.PublicReportDTO;
 import com.uit.scirs.report.dto.ReportDTO;
 import com.uit.scirs.report.dto.ReportMapDTO;
 import com.uit.scirs.report.dto.ReportSubmissionResultDTO;
@@ -34,6 +36,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.multipart.MultipartFile;
@@ -349,6 +354,20 @@ class ReportServiceTest {
 
         verify(reportRepository).findForMap(3L, ReportStatus.ASSIGNED, null, null, null, null, false,
                 List.of(ReportStatus.PENDING_APPROVAL, ReportStatus.REJECTED));
+    }
+
+    @Test
+    void getPublicFeed_queriesOnlyTheActiveMiddleStatuses() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(reportRepository.findByStatusInOrderByCreatedAtDesc(
+                List.of(ReportStatus.ASSIGNED, ReportStatus.IN_PROGRESS), pageable))
+                .thenReturn(Page.empty(pageable));
+
+        PageResponse<PublicReportDTO> result = reportService.getPublicFeed(pageable);
+
+        assertThat(result.content()).isEmpty();
+        verify(reportRepository).findByStatusInOrderByCreatedAtDesc(
+                List.of(ReportStatus.ASSIGNED, ReportStatus.IN_PROGRESS), pageable);
     }
 
     @Test

@@ -7,6 +7,7 @@ import com.uit.scirs.report.dto.CreateReportCommentDTO;
 import com.uit.scirs.report.dto.CreateReportDTO;
 import com.uit.scirs.report.dto.RejectReportDTO;
 import com.uit.scirs.report.dto.ReportCommentDTO;
+import com.uit.scirs.report.dto.PublicReportDTO;
 import com.uit.scirs.report.dto.ReportDTO;
 import com.uit.scirs.report.dto.ReportMapDTO;
 import com.uit.scirs.report.dto.ReportSubmissionResultDTO;
@@ -206,5 +207,20 @@ public class ReportController {
     @PreAuthorize("hasAnyRole('ADMIN','STAFF','CITIZEN')")
     public ResponseEntity<List<ReportMapDTO>> getPublicMapPins() {
         return ResponseEntity.ok(reportService.getApprovedMapReports());
+    }
+
+    // Citizen "What's happening in Yangon" feed — active reports from anyone,
+    // newest first, paged. The reporter's identity is masked server-side for
+    // reports submitted anonymously (see ReportMapper#toPublicDTO).
+    @GetMapping("/public")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF','CITIZEN')")
+    public ResponseEntity<PageResponse<PublicReportDTO>> getPublicFeed(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(
+                Math.max(page, 0),
+                Math.min(Math.max(size, 1), 50),
+                Sort.by(Sort.Direction.DESC, "createdAt"));
+        return ResponseEntity.ok(reportService.getPublicFeed(pageable));
     }
 }

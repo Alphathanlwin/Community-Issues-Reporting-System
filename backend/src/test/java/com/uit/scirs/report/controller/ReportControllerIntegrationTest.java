@@ -1,5 +1,6 @@
 package com.uit.scirs.report.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.uit.scirs.category.entity.Category;
 import com.uit.scirs.category.repository.CategoryRepository;
@@ -477,6 +478,80 @@ class ReportControllerIntegrationTest {
         mockMvc.perform(multipart("/api/reports").file(data)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    void createReport_withIsAnonymousTrue_persistsFlagAndAdminStillSeesTheReporter() throws Exception {
+        User citizen = persistApprovedCitizen("anon-create@example.com");
+        String token = jwtUtil.generateToken(citizen.getId(), citizen.getEmail(), RoleName.CITIZEN.name(), null);
+        long categoryId = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow().getId();
+        String json = """
+                {"title":"Pothole on Main St","description":"Large pothole blocking traffic",
+                 "categoryId":%d,"latitude":61.0000000,"longitude":61.0000000,"isAnonymous":true}"""
+                .formatted(categoryId);
+        MockMultipartFile data = new MockMultipartFile("data", "", "application/json", json.getBytes());
+
+        String response = mockMvc.perform(multipart("/api/reports").file(data)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.anonymous").value(true))
+                .andExpect(jsonPath("$.reporterName").value("Test Citizen"))
+                .andReturn().getResponse().getContentAsString();
+
+        long id = new ObjectMapper().readTree(response).get("id").asLong();
+        assertThat(reportRepository.findById(id).orElseThrow().isAnonymous()).isTrue();
+    }
+
+    @Test
+    void publicFeed_masksTheReporterForAnonymousReportsAndExcludesResolvedOnes() throws Exception {
+        Department roads = departmentRepository.findByName("Roads").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        User named = persistApprovedCitizen("feed-named@example.com");
+        User anon = persistApprovedCitizen("feed-anon@example.com");
+
+        Report namedReport = persistReport(named, pothole, roads, ReportStatus.ASSIGNED, "60.0000000", "60.0000000");
+        Report anonReport = persistReport(anon, pothole, roads, ReportStatus.IN_PROGRESS, "60.0010000", "60.0000000");
+        anonReport.setAnonymous(true);
+        reportRepository.save(anonReport);
+        Report resolvedReport = persistReport(named, pothole, roads, ReportStatus.RESOLVED, "60.0020000", "60.0000000");
+
+        String token = jwtUtil.generateToken(named.getId(), named.getEmail(), RoleName.CITIZEN.name(), null);
+
+        String body = mockMvc.perform(get("/api/reports/public").param("size", "50")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        JsonNode content = new ObjectMapper().readTree(body).get("content");
+
+        JsonNode anonNode = findById(content, anonReport.getId());
+        assertThat(anonNode).as("anonymous report is in the feed").isNotNull();
+        assertThat(anonNode.get("anonymous").asBoolean()).isTrue();
+        assertThat(anonNode.get("reporterName").isNull()).isTrue();
+        assertThat(anonNode.get("reporterAvatarUrl").isNull()).isTrue();
+        assertThat(anonNode.get("title").asText()).isNotBlank();
+
+        JsonNode namedNode = findById(content, namedReport.getId());
+        assertThat(namedNode).as("attributed report is in the feed").isNotNull();
+        assertThat(namedNode.get("anonymous").asBoolean()).isFalse();
+        assertThat(namedNode.get("reporterName").asText()).isEqualTo("Test Citizen");
+
+        assertThat(findById(content, resolvedReport.getId())).as("RESOLVED reports are excluded").isNull();
+    }
+
+    @Test
+    void publicFeed_withoutAuthentication_returns401() throws Exception {
+        mockMvc.perform(get("/api/reports/public"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    private static JsonNode findById(JsonNode content, long id) {
+        for (JsonNode node : content) {
+            if (node.get("id").asLong() == id) {
+                return node;
+            }
+        }
+        return null;
     }
 
     private String adminToken() {

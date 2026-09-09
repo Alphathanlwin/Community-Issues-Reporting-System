@@ -14,6 +14,7 @@ import com.uit.scirs.notification.service.NotificationService;
 import com.uit.scirs.report.dto.CreateReportDTO;
 import com.uit.scirs.report.dto.DuplicateCheckResultDTO;
 import com.uit.scirs.report.dto.PossibleDuplicateDTO;
+import com.uit.scirs.report.dto.PublicReportDTO;
 import com.uit.scirs.report.dto.ReportDTO;
 import com.uit.scirs.report.dto.ReportMapDTO;
 import com.uit.scirs.report.dto.ReportStatusHistoryDTO;
@@ -55,6 +56,10 @@ public class ReportService {
     private static final String IMAGE_FOLDER = "reports";
     private static final List<ReportStatus> HIDDEN_FROM_CITIZENS =
             List.of(ReportStatus.PENDING_APPROVAL, ReportStatus.REJECTED);
+    // The public feed shows only reports currently being acted on — approved and
+    // in flight, never PENDING_APPROVAL / REJECTED / RESOLVED / CLOSED.
+    private static final List<ReportStatus> PUBLIC_FEED_STATUSES =
+            List.of(ReportStatus.ASSIGNED, ReportStatus.IN_PROGRESS);
 
     private final ReportRepository reportRepository;
     private final ReportStatusHistoryRepository reportStatusHistoryRepository;
@@ -275,6 +280,19 @@ public class ReportService {
         List<Report> reports = reportRepository.findForMap(null, null, null, null, null, null,
                 true, HIDDEN_FROM_CITIZENS);
         return reportMapper.toMapDTOList(reports);
+    }
+
+    /**
+     * Citizen public feed ("What's happening in Yangon"): the active,
+     * citizen-visible reports from anyone in the city, newest first, paged.
+     * The mapper strips the reporter's identity for anonymous reports before
+     * it is serialized — a public caller never receives it.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<PublicReportDTO> getPublicFeed(Pageable pageable) {
+        return PageResponse.from(
+                reportRepository.findByStatusInOrderByCreatedAtDesc(PUBLIC_FEED_STATUSES, pageable)
+                        .map(reportMapper::toPublicDTO));
     }
 
     @Transactional

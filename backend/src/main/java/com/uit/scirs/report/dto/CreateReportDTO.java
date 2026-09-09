@@ -40,6 +40,9 @@ public class CreateReportDTO {
 
     private Boolean forceCreate;
 
+    // Opt-in: hide the reporter's identity on the public feed. Null == false.
+    private Boolean isAnonymous;
+
     public String getTitle() {
         return title;
     }
@@ -102,5 +105,13 @@ public class CreateReportDTO {
 
     public void setForceCreate(Boolean forceCreate) {
         this.forceCreate = forceCreate;
+    }
+
+    public Boolean getIsAnonymous() {
+        return isAnonymous;
+    }
+
+    public void setIsAnonymous(Boolean isAnonymous) {
+        this.isAnonymous = isAnonymous;
     }
 }

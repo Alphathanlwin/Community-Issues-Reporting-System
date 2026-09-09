@@ -188,8 +188,12 @@ Always creates the account with `role = STAFF` and `accountStatus = APPROVED` im
 | `/api/reports/{id}/history` | GET | ADMIN, STAFF, owner | Status timeline |
 | `/api/reports/{id}/comments` | GET / POST | ADMIN, STAFF | Internal department notes |
 | `/api/reports/map` | GET | all | Map pins (see below) |
+| `/api/reports/map/public` | GET | all | Cached, unfiltered citizen-visible map pins |
+| `/api/reports/public` | GET | all | Citizen public feed — active reports, newest first, paged (see below) |
 
 ### Submit a report — duplicate check
+
+**Anonymous submission.** The `data` part accepts an optional `isAnonymous` (boolean, default false). When true, `reports.is_anonymous` is set — the report shows as "Anonymous Citizen" on the public feed, but `reporter_id` is still recorded and ADMIN/STAFF endpoints return the real `reporterName` (with `anonymous: true` on the DTO) so abuse can still be actioned. Scoring is unaffected.
 
 `POST /api/reports` runs a proximity duplicate check (same category, non-terminal status, within 100m — see Decision D20 in `project-overview.md`) before persisting anything. The `data` part gains two optional fields for the round trip:
 
@@ -306,6 +310,29 @@ Returns a **slim** payload — never the full report DTO:
 ```
 
 Citizens only see reports with a status other than `PENDING_APPROVAL` and `REJECTED`.
+
+### Public feed endpoint
+
+`GET /api/reports/public?page=0&size=10` — any authenticated role. Backs the citizen home "What's happening in Yangon?" section. Reports currently being acted on only (`ASSIGNED`, `IN_PROGRESS`), newest first, in the standard paged envelope (`{ content, page, size, totalElements, totalPages }`). Each item:
+
+```json
+{
+  "id": 12,
+  "reportCode": "RPT-2026-000012",
+  "title": "Streetlight out on 42nd St",
+  "description": "…",
+  "categoryId": 3, "categoryName": "Street Lighting", "categoryColor": "#F97316",
+  "status": "ASSIGNED", "priority": "HIGH", "priorityScore": 41,
+  "latitude": 16.8409, "longitude": 96.1735, "addressText": "…",
+  "imageUrl": "https://…/reports/abc.jpg",
+  "createdAt": "2026-08-10T04:12:00Z",
+  "anonymous": false,
+  "reporterName": "Aung Aung",
+  "reporterAvatarUrl": "https://…"
+}
+```
+
+When `anonymous` is true, `reporterName` and `reporterAvatarUrl` are `null` — the identity is stripped server-side and never sent to a public caller.
 
 ---
 

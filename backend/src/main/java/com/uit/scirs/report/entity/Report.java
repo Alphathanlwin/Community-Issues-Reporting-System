@@ -17,6 +17,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -86,6 +87,13 @@ public class Report {
     // re-flag the same report repeatedly in future passes.
     @Column(name = "duplicate_checked", nullable = false)
     private boolean duplicateChecked = false;
+
+    // Pseudo-anonymous: when true the reporter is masked on the public feed
+    // ("Anonymous Citizen"), but reporter_id is still stored so admins/staff
+    // retain full accountability and can act on abuse.
+    @Column(name = "is_anonymous", nullable = false)
+    @ColumnDefault("false")
+    private boolean anonymous = false;
 
     @Column(name = "rejection_reason")
     private String rejectionReason;
@@ -243,6 +251,14 @@ public class Report {
 
     public void setDuplicateChecked(boolean duplicateChecked) {
         this.duplicateChecked = duplicateChecked;
+    }
+
+    public boolean isAnonymous() {
+        return anonymous;
+    }
+
+    public void setAnonymous(boolean anonymous) {
+        this.anonymous = anonymous;
     }
 
     public List<ReportImage> getImages() {

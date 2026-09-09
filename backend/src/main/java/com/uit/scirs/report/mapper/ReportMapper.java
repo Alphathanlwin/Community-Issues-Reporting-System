@@ -1,15 +1,18 @@
 package com.uit.scirs.report.mapper;
 
 import com.uit.scirs.report.dto.CreateReportDTO;
+import com.uit.scirs.report.dto.PublicReportDTO;
 import com.uit.scirs.report.dto.ReportCommentDTO;
 import com.uit.scirs.report.dto.ReportDTO;
 import com.uit.scirs.report.dto.ReportImageDTO;
 import com.uit.scirs.report.dto.ReportMapDTO;
 import com.uit.scirs.report.dto.ReportStatusHistoryDTO;
+import com.uit.scirs.report.entity.ImageType;
 import com.uit.scirs.report.entity.Report;
 import com.uit.scirs.report.entity.ReportComment;
 import com.uit.scirs.report.entity.ReportImage;
 import com.uit.scirs.report.entity.ReportStatusHistory;
+import com.uit.scirs.user.entity.User;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -24,6 +27,7 @@ public class ReportMapper {
         entity.setLatitude(dto.getLatitude());
         entity.setLongitude(dto.getLongitude());
         entity.setAddressText(dto.getAddressText());
+        entity.setAnonymous(Boolean.TRUE.equals(dto.getIsAnonymous()));
         return entity;
     }
 
@@ -50,6 +54,9 @@ public class ReportMapper {
             dto.setDepartmentName(entity.getDepartment().getName());
         }
 
+        // ADMIN / STAFF DTO — identity is always retained for accountability,
+        // with `anonymous` flagging how the report appears to the public.
+        dto.setAnonymous(entity.isAnonymous());
         if (entity.getReporter() != null) {
             dto.setReporterId(entity.getReporter().getId());
             dto.setReporterName(entity.getReporter().getFullName());
@@ -106,6 +113,50 @@ public class ReportMapper {
 
     public List<ReportMapDTO> toMapDTOList(List<Report> entities) {
         return entities.stream().map(this::toMapDTO).toList();
+    }
+
+    /**
+     * Citizen public-feed projection. The reporter's identity is stripped here
+     * — before serialization — for anonymous reports; it is never sent to a
+     * public caller.
+     */
+    public PublicReportDTO toPublicDTO(Report entity) {
+        PublicReportDTO dto = new PublicReportDTO();
+        dto.setId(entity.getId());
+        dto.setReportCode(entity.getReportCode());
+        dto.setTitle(entity.getTitle());
+        dto.setDescription(entity.getDescription());
+        dto.setStatus(entity.getStatus().name());
+        dto.setPriority(entity.getPriority().name());
+        dto.setPriorityScore(entity.getPriorityScore());
+        dto.setLatitude(entity.getLatitude());
+        dto.setLongitude(entity.getLongitude());
+        dto.setAddressText(entity.getAddressText());
+        dto.setCreatedAt(entity.getCreatedAt());
+
+        if (entity.getCategory() != null) {
+            dto.setCategoryId(entity.getCategory().getId());
+            dto.setCategoryName(entity.getCategory().getName());
+            dto.setCategoryColor(entity.getCategory().getColorHex());
+        }
+
+        dto.setImageUrl(entity.getImages().stream()
+                .filter(image -> image.getImageType() == ImageType.REPORT_PHOTO)
+                .map(ReportImage::getImageUrl)
+                .findFirst()
+                .orElse(null));
+
+        dto.setAnonymous(entity.isAnonymous());
+        User reporter = entity.getReporter();
+        if (!entity.isAnonymous() && reporter != null) {
+            dto.setReporterName(reporter.getFullName());
+            dto.setReporterAvatarUrl(reporter.getProfileImageUrl());
+        }
+        return dto;
+    }
+
+    public List<PublicReportDTO> toPublicDTOList(List<Report> entities) {
+        return entities.stream().map(this::toPublicDTO).toList();
     }
 
     public ReportCommentDTO toCommentDTO(ReportComment entity) {

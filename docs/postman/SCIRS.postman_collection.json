@@ -261,7 +261,7 @@
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "data", "type": "text", "value": "{\n  \"title\": \"Streetlight out on Pyay Road\",\n  \"description\": \"The streetlight has been off for a week.\",\n  \"categoryId\": 1,\n  \"latitude\": 16.8409,\n  \"longitude\": 96.1735,\n  \"addressText\": \"Pyay Road, Kamayut\"\n}" },
+                { "key": "data", "type": "text", "value": "{\n  \"title\": \"Streetlight out on Pyay Road\",\n  \"description\": \"The streetlight has been off for a week.\",\n  \"categoryId\": 1,\n  \"latitude\": 16.8409,\n  \"longitude\": 96.1735,\n  \"addressText\": \"Pyay Road, Kamayut\",\n  \"isAnonymous\": false\n}" },
                 { "key": "images", "type": "file", "src": [] }
               ]
             },
@@ -352,6 +352,10 @@
         {
           "name": "Map pins",
           "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/reports/map?status=ASSIGNED&categoryId=1", "host": ["{{baseUrl}}"], "path": ["reports", "map"], "query": [{ "key": "status", "value": "ASSIGNED" }, { "key": "categoryId", "value": "1" }] } }
+        },
+        {
+          "name": "Public feed — What's happening in Yangon (paged)",
+          "request": { "method": "GET", "description": "Active reports (ASSIGNED/IN_PROGRESS), newest first. reporterName / reporterAvatarUrl are null when anonymous is true — masked server-side.", "url": { "raw": "{{baseUrl}}/reports/public?page=0&size=10", "host": ["{{baseUrl}}"], "path": ["reports", "public"], "query": [{ "key": "page", "value": "0" }, { "key": "size", "value": "10" }] } }
         }
       ]
     },

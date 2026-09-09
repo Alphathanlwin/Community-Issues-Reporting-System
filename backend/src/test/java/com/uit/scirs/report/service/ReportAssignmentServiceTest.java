@@ -62,7 +62,7 @@ class ReportAssignmentServiceTest {
 
         assertThat(result.getDepartmentId()).isEqualTo(3L);
         verify(statusHistoryService).record(report, ReportStatus.ASSIGNED, ReportStatus.ASSIGNED, admin,
-                "Reassigned to Water department.");
+                "Reassigned to Water & Sanitation Department department.");
     }
 
     @Test

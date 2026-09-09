@@ -39,7 +39,7 @@ class UserControllerIntegrationTest {
     @Test
     void createStaff_withAdminTokenAndActiveDepartment_returns201() throws Exception {
         String adminToken = adminToken();
-        long roadsId = departmentRepository.findByName("Roads").orElseThrow().getId();
+        long roadsId = departmentRepository.findByName("Roads & Bridges Department").orElseThrow().getId();
 
         mockMvc.perform(post("/api/users/staff")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
@@ -57,7 +57,7 @@ class UserControllerIntegrationTest {
     @Test
     void createStaff_withInactiveDepartment_returns400() throws Exception {
         String adminToken = adminToken();
-        long buildingsId = departmentRepository.findByName("Buildings").orElseThrow().getId();
+        long buildingsId = departmentRepository.findByName("Buildings Department").orElseThrow().getId();
 
         mockMvc.perform(delete("/api/departments/" + buildingsId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
@@ -90,7 +90,7 @@ class UserControllerIntegrationTest {
     @Test
     void createStaff_withCitizenToken_returns403() throws Exception {
         String citizenToken = jwtUtil.generateToken(2L, "citizen@example.com", RoleName.CITIZEN.name(), null);
-        long roadsId = departmentRepository.findByName("Roads").orElseThrow().getId();
+        long roadsId = departmentRepository.findByName("Roads & Bridges Department").orElseThrow().getId();
 
         mockMvc.perform(post("/api/users/staff")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + citizenToken)

@@ -65,7 +65,7 @@ class CacheConfigIntegrationTest {
         categoryService.getAll();
         verify(categoryRepository, times(1)).findAll();
 
-        long roadsId = departmentRepository.findByName("Roads").orElseThrow().getId();
+        long roadsId = departmentRepository.findByName("Roads & Bridges Department").orElseThrow().getId();
         CreateCategoryDTO dto = new CreateCategoryDTO();
         dto.setName("Cache Test Category " + System.nanoTime());
         dto.setDescription("Created by CacheConfigIntegrationTest");

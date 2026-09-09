@@ -58,7 +58,7 @@ These map directly to the business rules in `project-overview.md`. If time is sh
 
 ### Access control
 18. Citizen A cannot fetch citizen B's report by id → 403
-19. Staff in the Roads department cannot fetch a Water department report → 403
+19. Staff in the Roads & Bridges department cannot fetch a Water & Sanitation department report → 403
 20. `/api/reports/map` excludes `PENDING_APPROVAL` and `REJECTED` reports for citizens
 
 ### Feedback & scoring
@@ -87,8 +87,8 @@ class ReportWorkflowServiceTest {
 
     @Test
     void approve_setsStatusAssignedAndRoutesToCategoryDepartment() {
-        Department roads = department(2L, "Roads");
-        Category pothole = category(1L, "Pothole / Damaged Road", roads);
+        Department roads = department(2L, "Roads & Bridges Department");
+        Category pothole = category(1L, "Pothole / Damaged Road Surface", roads);
         Report report = report(10L, ReportStatus.PENDING_APPROVAL, pothole);
         when(reportRepository.findById(10L)).thenReturn(Optional.of(report));
         when(reportRepository.save(any(Report.class))).thenAnswer(i -> i.getArgument(0));

@@ -53,7 +53,7 @@ class ReportControllerIntegrationTest {
     void createReport_withApprovedCitizenAndValidData_returns201WithPendingApprovalStatus() throws Exception {
         User citizen = persistApprovedCitizen("citizen1@example.com");
         String token = jwtUtil.generateToken(citizen.getId(), citizen.getEmail(), RoleName.CITIZEN.name(), null);
-        long categoryId = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow().getId();
+        long categoryId = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow().getId();
 
         // Each create-flow test in this class uses its own far-apart location
         // (see the class-level comment above jsonPart) so the new duplicate
@@ -73,7 +73,7 @@ class ReportControllerIntegrationTest {
     void createReport_withImage_returns201AndStoresImageUrl() throws Exception {
         User citizen = persistApprovedCitizen("citizen2@example.com");
         String token = jwtUtil.generateToken(citizen.getId(), citizen.getEmail(), RoleName.CITIZEN.name(), null);
-        long categoryId = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow().getId();
+        long categoryId = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow().getId();
 
         MockMultipartFile data = jsonPart(categoryId, "20.0000000", "20.0000000");
         byte[] jpegBytes = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 0x00, 0x01, 0x02};
@@ -90,7 +90,7 @@ class ReportControllerIntegrationTest {
     void createReport_withInvalidImageContent_returns400() throws Exception {
         User citizen = persistApprovedCitizen("citizen3@example.com");
         String token = jwtUtil.generateToken(citizen.getId(), citizen.getEmail(), RoleName.CITIZEN.name(), null);
-        long categoryId = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow().getId();
+        long categoryId = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow().getId();
 
         MockMultipartFile data = jsonPart(categoryId, "30.0000000", "30.0000000");
         MockMultipartFile bogusImage = new MockMultipartFile("images", "fake.jpg", "image/jpeg",
@@ -110,7 +110,7 @@ class ReportControllerIntegrationTest {
         // FileStorageService's own belt-and-braces size check instead.
         User citizen = persistApprovedCitizen("citizen8@example.com");
         String token = jwtUtil.generateToken(citizen.getId(), citizen.getEmail(), RoleName.CITIZEN.name(), null);
-        long categoryId = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow().getId();
+        long categoryId = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow().getId();
 
         MockMultipartFile data = jsonPart(categoryId, "40.0000000", "40.0000000");
         byte[] oversized = new byte[6 * 1024 * 1024];
@@ -137,7 +137,7 @@ class ReportControllerIntegrationTest {
     void createReport_withBlankTitle_returns400WithFieldError() throws Exception {
         User citizen = persistApprovedCitizen("citizen5@example.com");
         String token = jwtUtil.generateToken(citizen.getId(), citizen.getEmail(), RoleName.CITIZEN.name(), null);
-        long categoryId = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow().getId();
+        long categoryId = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow().getId();
 
         MockMultipartFile data = new MockMultipartFile("data", "", "application/json", ("""
                 {"title":"","description":"Large pothole","categoryId":%d,"latitude":16.84,"longitude":96.17}
@@ -153,7 +153,7 @@ class ReportControllerIntegrationTest {
     void createReport_withInvalidLatitude_returns400WithFieldError() throws Exception {
         User citizen = persistApprovedCitizen("citizen6@example.com");
         String token = jwtUtil.generateToken(citizen.getId(), citizen.getEmail(), RoleName.CITIZEN.name(), null);
-        long categoryId = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow().getId();
+        long categoryId = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow().getId();
 
         MockMultipartFile data = new MockMultipartFile("data", "", "application/json", ("""
                 {"title":"Pothole","description":"Large pothole","categoryId":%d,"latitude":95.0,"longitude":96.17}
@@ -169,7 +169,7 @@ class ReportControllerIntegrationTest {
     void createReport_withInvalidLongitude_returns400WithFieldError() throws Exception {
         User citizen = persistApprovedCitizen("citizen7@example.com");
         String token = jwtUtil.generateToken(citizen.getId(), citizen.getEmail(), RoleName.CITIZEN.name(), null);
-        long categoryId = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow().getId();
+        long categoryId = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow().getId();
 
         MockMultipartFile data = new MockMultipartFile("data", "", "application/json", ("""
                 {"title":"Pothole","description":"Large pothole","categoryId":%d,"latitude":16.84,"longitude":185.0}
@@ -183,7 +183,7 @@ class ReportControllerIntegrationTest {
 
     @Test
     void createReport_withoutAuthentication_returns401() throws Exception {
-        long categoryId = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow().getId();
+        long categoryId = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow().getId();
         MockMultipartFile data = jsonPart(categoryId, "16.8409000", "96.1735000");
 
         mockMvc.perform(multipart("/api/reports").file(data))
@@ -193,7 +193,7 @@ class ReportControllerIntegrationTest {
     @Test
     void createReport_withStaffToken_returns403() throws Exception {
         String staffToken = jwtUtil.generateToken(1L, "staff@example.com", RoleName.STAFF.name(), 1L);
-        long categoryId = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow().getId();
+        long categoryId = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow().getId();
         MockMultipartFile data = jsonPart(categoryId, "16.8409000", "96.1735000");
 
         mockMvc.perform(multipart("/api/reports").file(data)
@@ -203,10 +203,10 @@ class ReportControllerIntegrationTest {
 
     @Test
     void getReports_asStaff_returnsPagedEnvelopeScopedToOwnDepartment() throws Exception {
-        Department roads = departmentRepository.findByName("Roads").orElseThrow();
-        Department water = departmentRepository.findByName("Water").orElseThrow();
-        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
-        Category leak = categoryRepository.findByName("Water Leakage / Drainage").orElseThrow();
+        Department roads = departmentRepository.findByName("Roads & Bridges Department").orElseThrow();
+        Department water = departmentRepository.findByName("Water & Sanitation Department").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
+        Category leak = categoryRepository.findByName("Water Pipe Leak or Burst Main").orElseThrow();
         User reporter = persistApprovedCitizen("list-scope-reporter@example.com");
 
         Report roadsReport = persistReport(reporter, pothole, roads, ReportStatus.ASSIGNED);
@@ -220,14 +220,14 @@ class ReportControllerIntegrationTest {
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.totalElements").isNumber())
                 .andExpect(jsonPath("$.totalPages").isNumber())
-                .andExpect(jsonPath("$.content[?(@.departmentName == 'Water')]").isEmpty())
+                .andExpect(jsonPath("$.content[?(@.departmentName == 'Water & Sanitation Department')]").isEmpty())
                 .andExpect(jsonPath("$.content[?(@.id == " + roadsReport.getId() + ")]").exists());
     }
 
     @Test
     void getReports_withSearchTerm_matchesTitleCaseInsensitively() throws Exception {
-        Department roads = departmentRepository.findByName("Roads").orElseThrow();
-        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Department roads = departmentRepository.findByName("Roads & Bridges Department").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
         User reporter = persistApprovedCitizen("list-search-reporter@example.com");
 
         Report match = new Report();
@@ -253,9 +253,9 @@ class ReportControllerIntegrationTest {
 
     @Test
     void assign_withAdminAndValidDepartment_returns200AndUpdatesDepartment() throws Exception {
-        Department roads = departmentRepository.findByName("Roads").orElseThrow();
-        Department water = departmentRepository.findByName("Water").orElseThrow();
-        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Department roads = departmentRepository.findByName("Roads & Bridges Department").orElseThrow();
+        Department water = departmentRepository.findByName("Water & Sanitation Department").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
         User reporter = persistApprovedCitizen("assign-reporter@example.com");
         Report report = persistReport(reporter, pothole, roads, ReportStatus.ASSIGNED);
         String adminToken = adminToken();
@@ -270,8 +270,8 @@ class ReportControllerIntegrationTest {
 
     @Test
     void assign_withStaffToken_returns403() throws Exception {
-        Department roads = departmentRepository.findByName("Roads").orElseThrow();
-        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Department roads = departmentRepository.findByName("Roads & Bridges Department").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
         User reporter = persistApprovedCitizen("assign-reporter2@example.com");
         Report report = persistReport(reporter, pothole, roads, ReportStatus.ASSIGNED);
         String staffToken = jwtUtil.generateToken(1L, "staff-assign@example.com", RoleName.STAFF.name(), roads.getId());
@@ -285,8 +285,8 @@ class ReportControllerIntegrationTest {
 
     @Test
     void priority_withStaffOwningDepartment_returns200() throws Exception {
-        Department roads = departmentRepository.findByName("Roads").orElseThrow();
-        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Department roads = departmentRepository.findByName("Roads & Bridges Department").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
         User reporter = persistApprovedCitizen("priority-reporter@example.com");
         Report report = persistReport(reporter, pothole, roads, ReportStatus.ASSIGNED);
         String staffToken = jwtUtil.generateToken(1L, "staff-priority@example.com", RoleName.STAFF.name(), roads.getId());
@@ -301,8 +301,8 @@ class ReportControllerIntegrationTest {
 
     @Test
     void priority_withCitizenToken_returns403() throws Exception {
-        Department roads = departmentRepository.findByName("Roads").orElseThrow();
-        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Department roads = departmentRepository.findByName("Roads & Bridges Department").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
         User reporter = persistApprovedCitizen("priority-reporter2@example.com");
         Report report = persistReport(reporter, pothole, roads, ReportStatus.ASSIGNED);
         String citizenToken = jwtUtil.generateToken(reporter.getId(), reporter.getEmail(), RoleName.CITIZEN.name(), null);
@@ -316,8 +316,8 @@ class ReportControllerIntegrationTest {
 
     @Test
     void comments_postThenGet_returnsTheCreatedComment() throws Exception {
-        Department roads = departmentRepository.findByName("Roads").orElseThrow();
-        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Department roads = departmentRepository.findByName("Roads & Bridges Department").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
         User reporter = persistApprovedCitizen("comment-reporter@example.com");
         Report report = persistReport(reporter, pothole, roads, ReportStatus.ASSIGNED);
         String staffToken = jwtUtil.generateToken(1L, "staff-comment@example.com", RoleName.STAFF.name(), roads.getId());
@@ -337,8 +337,8 @@ class ReportControllerIntegrationTest {
 
     @Test
     void comments_withCitizenToken_returns403() throws Exception {
-        Department roads = departmentRepository.findByName("Roads").orElseThrow();
-        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Department roads = departmentRepository.findByName("Roads & Bridges Department").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
         User reporter = persistApprovedCitizen("comment-reporter2@example.com");
         Report report = persistReport(reporter, pothole, roads, ReportStatus.ASSIGNED);
         String citizenToken = jwtUtil.generateToken(reporter.getId(), reporter.getEmail(), RoleName.CITIZEN.name(), null);
@@ -350,12 +350,12 @@ class ReportControllerIntegrationTest {
 
     @Test
     void comments_withStaffFromAnotherDepartment_returns403() throws Exception {
-        Department roads = departmentRepository.findByName("Roads").orElseThrow();
-        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Department roads = departmentRepository.findByName("Roads & Bridges Department").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
         User reporter = persistApprovedCitizen("comment-reporter3@example.com");
         Report report = persistReport(reporter, pothole, roads, ReportStatus.ASSIGNED);
         String otherStaffToken = jwtUtil.generateToken(2L, "staff-other-dept@example.com", RoleName.STAFF.name(),
-                departmentRepository.findByName("Water").orElseThrow().getId());
+                departmentRepository.findByName("Water & Sanitation Department").orElseThrow().getId());
 
         mockMvc.perform(get("/api/reports/" + report.getId() + "/comments")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherStaffToken))
@@ -365,7 +365,7 @@ class ReportControllerIntegrationTest {
     @Test
     void createReport_withinHundredMetersOfOpenReportSameCategory_returns200WithPossibleDuplicates() throws Exception {
         User firstReporter = persistApprovedCitizen("dup-reporter1@example.com");
-        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
         Report existing = persistReport(firstReporter, pothole, null, ReportStatus.PENDING_APPROVAL,
                 "50.0000000", "50.0000000");
 
@@ -386,7 +386,7 @@ class ReportControllerIntegrationTest {
     @Test
     void createReport_moreThanHundredMetersFromOpenReportSameCategory_returns201Normally() throws Exception {
         User firstReporter = persistApprovedCitizen("dup-reporter3@example.com");
-        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
         persistReport(firstReporter, pothole, null, ReportStatus.PENDING_APPROVAL, "51.0000000", "51.0000000");
 
         User secondReporter = persistApprovedCitizen("dup-reporter4@example.com");
@@ -403,8 +403,8 @@ class ReportControllerIntegrationTest {
     @Test
     void createReport_sameLocationDifferentCategory_notFlaggedAsDuplicate() throws Exception {
         User firstReporter = persistApprovedCitizen("dup-reporter5@example.com");
-        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
-        Category water = categoryRepository.findByName("Water Leakage / Drainage").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
+        Category water = categoryRepository.findByName("Water Pipe Leak or Burst Main").orElseThrow();
         persistReport(firstReporter, pothole, null, ReportStatus.PENDING_APPROVAL, "52.0000000", "52.0000000");
 
         User secondReporter = persistApprovedCitizen("dup-reporter6@example.com");
@@ -419,7 +419,7 @@ class ReportControllerIntegrationTest {
     @Test
     void createReport_onlyExistingCandidateIsResolved_notFlaggedAsDuplicate() throws Exception {
         User firstReporter = persistApprovedCitizen("dup-reporter7@example.com");
-        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
         persistReport(firstReporter, pothole, null, ReportStatus.RESOLVED, "53.0000000", "53.0000000");
 
         User secondReporter = persistApprovedCitizen("dup-reporter8@example.com");
@@ -434,7 +434,7 @@ class ReportControllerIntegrationTest {
     @Test
     void createReport_withForceCreateAfterWarning_createsAndMarksDuplicateChecked() throws Exception {
         User firstReporter = persistApprovedCitizen("dup-reporter9@example.com");
-        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
         persistReport(firstReporter, pothole, null, ReportStatus.PENDING_APPROVAL, "54.0000000", "54.0000000");
 
         User secondReporter = persistApprovedCitizen("dup-reporter10@example.com");
@@ -458,7 +458,7 @@ class ReportControllerIntegrationTest {
     @Test
     void confirmDuplicate_thenConfirmAgain_createsConfirmationOnceAndReturns409OnSecondAttempt() throws Exception {
         User firstReporter = persistApprovedCitizen("dup-reporter11@example.com");
-        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
         Report existing = persistReport(firstReporter, pothole, null, ReportStatus.PENDING_APPROVAL,
                 "55.0000000", "55.0000000");
 
@@ -484,7 +484,7 @@ class ReportControllerIntegrationTest {
     void createReport_withIsAnonymousTrue_persistsFlagAndAdminStillSeesTheReporter() throws Exception {
         User citizen = persistApprovedCitizen("anon-create@example.com");
         String token = jwtUtil.generateToken(citizen.getId(), citizen.getEmail(), RoleName.CITIZEN.name(), null);
-        long categoryId = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow().getId();
+        long categoryId = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow().getId();
         String json = """
                 {"title":"Pothole on Main St","description":"Large pothole blocking traffic",
                  "categoryId":%d,"latitude":61.0000000,"longitude":61.0000000,"isAnonymous":true}"""
@@ -504,8 +504,8 @@ class ReportControllerIntegrationTest {
 
     @Test
     void publicFeed_masksTheReporterForAnonymousReportsAndExcludesResolvedOnes() throws Exception {
-        Department roads = departmentRepository.findByName("Roads").orElseThrow();
-        Category pothole = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Department roads = departmentRepository.findByName("Roads & Bridges Department").orElseThrow();
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
         User named = persistApprovedCitizen("feed-named@example.com");
         User anon = persistApprovedCitizen("feed-anon@example.com");
 

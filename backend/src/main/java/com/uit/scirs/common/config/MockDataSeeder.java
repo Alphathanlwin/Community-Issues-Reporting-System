@@ -173,12 +173,13 @@ public class MockDataSeeder implements CommandLineRunner {
         }
 
         List<StaffSpec> specs = List.of(
-                new StaffSpec("Mya Mya Win", "staff.electricity@scirs.gov", "+95912346001", "Electricity"),
-                new StaffSpec("Ko Ko Lwin", "staff.roads@scirs.gov", "+95912346002", "Roads"),
-                new StaffSpec("Thet Htar San", "staff.water@scirs.gov", "+95912346003", "Water"),
-                new StaffSpec("Zaw Myo Aung", "staff.sanitation@scirs.gov", "+95912346004", "Sanitation"),
-                new StaffSpec("Nandar Hlaing", "staff.parks@scirs.gov", "+95912346005", "Parks"),
-                new StaffSpec("Aung Aung", "staff.buildings@scirs.gov", "+95912346006", "Buildings")
+                new StaffSpec("Mya Mya Win", "staff.electricity@scirs.gov", "+95912346001", "Yangon Electricity Supply Corporation (YESC)"),
+                new StaffSpec("Ko Ko Lwin", "staff.roads@scirs.gov", "+95912346002", "Roads & Bridges Department"),
+                new StaffSpec("Thet Htar San", "staff.water@scirs.gov", "+95912346003", "Water & Sanitation Department"),
+                new StaffSpec("Zaw Myo Aung", "staff.sanitation@scirs.gov", "+95912346004", "Urban Environmental Conservation & Cleansing Department"),
+                new StaffSpec("Nandar Hlaing", "staff.parks@scirs.gov", "+95912346005", "Playgrounds, Parks & Gardens Department"),
+                new StaffSpec("Aung Aung", "staff.buildings@scirs.gov", "+95912346006", "Buildings Department"),
+                new StaffSpec("Htet Htet Naing", "staff.drainage@scirs.gov", "+95912346007", "Drainage Management Department")
         );
 
         Map<String, User> byDepartment = new HashMap<>();
@@ -214,46 +215,46 @@ public class MockDataSeeder implements CommandLineRunner {
 
         List<ReportSpec> specs = List.of(
                 // -- PENDING_APPROVAL (awaiting admin review) --
-                new ReportSpec("Streetlight out on Pyay Road", "The streetlight near the Hledan junction has been off for a week, making the crossing dangerous at night.", "Street Lighting / Power Outage", 0, 16.8265, 96.1296, "Pyay Road, Kamayut", ReportPriority.HIGH, ReportStatus.PENDING_APPROVAL, null),
-                new ReportSpec("Large pothole near Thanlyin bridge approach", "A deep pothole has formed on the approach road, already caused two motorbike falls.", "Pothole / Damaged Road", 1, 16.7250, 96.2586, "Thanlyin Bridge Approach", ReportPriority.URGENT, ReportStatus.PENDING_APPROVAL, null),
-                new ReportSpec("Overflowing drain behind 42nd Street", "Drainage water has been pooling for days and starting to smell.", "Water Leakage / Drainage", 2, 16.7756, 96.1614, "42nd Street, Botahtaung", ReportPriority.NORMAL, ReportStatus.PENDING_APPROVAL, null),
-                new ReportSpec("Garbage not collected for a week", "Bins along the street are overflowing and attracting stray dogs.", "Garbage / Sanitation", 3, 16.8661, 96.1951, "Yuzana Garden Street, North Okkalapa", ReportPriority.NORMAL, ReportStatus.PENDING_APPROVAL, null),
-                new ReportSpec("Broken swing at Kandawgyi playground", "One of the children's swings is broken and has a sharp edge exposed.", "Park & Public Space", 4, 16.8143, 96.1660, "Kandawgyi Park", ReportPriority.LOW, ReportStatus.PENDING_APPROVAL, null),
+                new ReportSpec("Streetlight out on Pyay Road", "The streetlight near the Hledan junction has been off for a week, making the crossing dangerous at night.", "Street Light Outage", 0, 16.8265, 96.1296, "Pyay Road, Kamayut", ReportPriority.HIGH, ReportStatus.PENDING_APPROVAL, null),
+                new ReportSpec("Large pothole near Thanlyin bridge approach", "A deep pothole has formed on the approach road, already caused two motorbike falls.", "Pothole / Damaged Road Surface", 1, 16.7250, 96.2586, "Thanlyin Bridge Approach", ReportPriority.URGENT, ReportStatus.PENDING_APPROVAL, null),
+                new ReportSpec("Overflowing drain behind 42nd Street", "Drainage water has been pooling for days and starting to smell.", "Blocked Drain or Clogged Culvert", 2, 16.7756, 96.1614, "42nd Street, Botahtaung", ReportPriority.NORMAL, ReportStatus.PENDING_APPROVAL, null),
+                new ReportSpec("Garbage not collected for a week", "Bins along the street are overflowing and attracting stray dogs.", "Uncollected Garbage", 3, 16.8661, 96.1951, "Yuzana Garden Street, North Okkalapa", ReportPriority.NORMAL, ReportStatus.PENDING_APPROVAL, null),
+                new ReportSpec("Broken swing at Kandawgyi playground", "One of the children's swings is broken and has a sharp edge exposed.", "Damaged Park or Playground Equipment", 4, 16.8143, 96.1660, "Kandawgyi Park", ReportPriority.LOW, ReportStatus.PENDING_APPROVAL, null),
 
                 // -- REJECTED --
-                new ReportSpec("Noisy air conditioner next door", "Neighbour's AC unit is loud at night.", "Damaged Public Building", 5, 16.8010, 96.1420, "Golden Valley, Bahan", ReportPriority.LOW, ReportStatus.REJECTED, "Not a public infrastructure issue — please contact ward administration for neighbour disputes."),
-                new ReportSpec("Slow wifi at community library", "Wifi speed at the public library is too slow.", "Damaged Public Building", 6, 16.8480, 96.1350, "Community Library, Insein", ReportPriority.LOW, ReportStatus.REJECTED, "Out of scope for this system — not a physical infrastructure defect."),
-                new ReportSpec("Duplicate pothole report", "Same pothole already reported by another citizen this week.", "Pothole / Damaged Road", 0, 16.8398, 96.1381, "Bogyoke Road, Sanchaung", ReportPriority.NORMAL, ReportStatus.REJECTED, "Duplicate of an existing open report (RPT-2026-000002)."),
+                new ReportSpec("Noisy air conditioner next door", "Neighbour's AC unit is loud at night.", "Unsafe or Damaged Public Building", 5, 16.8010, 96.1420, "Golden Valley, Bahan", ReportPriority.LOW, ReportStatus.REJECTED, "Not a public infrastructure issue — please contact ward administration for neighbour disputes."),
+                new ReportSpec("Neighbour building illegal rooftop extension", "A rooftop room is being added without visible permits, and it now blocks the building's fire escape.", "Illegal or Unsafe Construction", 6, 16.8480, 96.1350, "Golden Valley, Bahan", ReportPriority.LOW, ReportStatus.REJECTED, "Requires a ward-level building permit review — please file with the YCDC planning office."),
+                new ReportSpec("Duplicate pothole report", "Same pothole already reported by another citizen this week.", "Pothole / Damaged Road Surface", 0, 16.8398, 96.1381, "Bogyoke Road, Sanchaung", ReportPriority.NORMAL, ReportStatus.REJECTED, "Duplicate of an existing open report (RPT-2026-000002)."),
 
                 // -- ASSIGNED (approved, routed, awaiting staff pickup) --
-                new ReportSpec("Power outage across whole block", "No electricity since last night across the entire block of 5 buildings.", "Street Lighting / Power Outage", 1, 16.7967, 96.1550, "Thin Gan Gyun, Tarmwe", ReportPriority.URGENT, ReportStatus.ASSIGNED, null),
-                new ReportSpec("Cracked pavement outside school", "Pavement slabs are cracked and lifting, a trip hazard for schoolchildren.", "Pothole / Damaged Road", 2, 16.8556, 96.1279, "Basic Education School Road, Hlaing", ReportPriority.HIGH, ReportStatus.ASSIGNED, null),
-                new ReportSpec("Leaking water pipe flooding footpath", "A burst pipe is flooding the footpath along the main road.", "Water Leakage / Drainage", 3, 16.7890, 96.1720, "Strand Road, Botahtaung", ReportPriority.HIGH, ReportStatus.ASSIGNED, null),
-                new ReportSpec("Illegal dumping near market", "Construction debris dumped illegally beside the wet market entrance.", "Garbage / Sanitation", 4, 16.7712, 96.1601, "Thein Gyi Market, Latha", ReportPriority.NORMAL, ReportStatus.ASSIGNED, null),
-                new ReportSpec("Damaged fence at People's Park", "The perimeter fence has collapsed after recent storms.", "Park & Public Space", 5, 16.7960, 96.1390, "People's Park, Dagon", ReportPriority.NORMAL, ReportStatus.ASSIGNED, null),
-                new ReportSpec("Crumbling ceiling at township office", "Plaster is falling from the ceiling in the public waiting hall.", "Damaged Public Building", 6, 16.8710, 96.1550, "Township Administration Office, Insein", ReportPriority.HIGH, ReportStatus.ASSIGNED, null),
+                new ReportSpec("Power outage across whole block", "No electricity since last night across the entire block of 5 buildings.", "Power Outage or Exposed Cable", 1, 16.7967, 96.1550, "Thin Gan Gyun, Tarmwe", ReportPriority.URGENT, ReportStatus.ASSIGNED, null),
+                new ReportSpec("Cracked pavement outside school", "Pavement slabs are cracked and lifting, a trip hazard for schoolchildren.", "Damaged Footpath or Pedestrian Bridge", 2, 16.8556, 96.1279, "Basic Education School Road, Hlaing", ReportPriority.HIGH, ReportStatus.ASSIGNED, null),
+                new ReportSpec("Leaking water pipe flooding footpath", "A burst pipe is flooding the footpath along the main road.", "Water Pipe Leak or Burst Main", 3, 16.7890, 96.1720, "Strand Road, Botahtaung", ReportPriority.HIGH, ReportStatus.ASSIGNED, null),
+                new ReportSpec("Illegal dumping near market", "Construction debris dumped illegally beside the wet market entrance.", "Illegal Dumping", 4, 16.7712, 96.1601, "Thein Gyi Market, Latha", ReportPriority.NORMAL, ReportStatus.ASSIGNED, null),
+                new ReportSpec("Damaged fence at People's Park", "The perimeter fence has collapsed after recent storms.", "Damaged Park or Playground Equipment", 5, 16.7960, 96.1390, "People's Park, Dagon", ReportPriority.NORMAL, ReportStatus.ASSIGNED, null),
+                new ReportSpec("Crumbling ceiling at township office", "Plaster is falling from the ceiling in the public waiting hall.", "Unsafe or Damaged Public Building", 6, 16.8710, 96.1550, "Township Administration Office, Insein", ReportPriority.HIGH, ReportStatus.ASSIGNED, null),
 
                 // -- IN_PROGRESS (staff actively working) --
-                new ReportSpec("Flickering streetlights along university avenue", "Multiple streetlights flicker on and off, likely a wiring fault.", "Street Lighting / Power Outage", 0, 16.8460, 96.1330, "University Avenue Road, Kamayut", ReportPriority.NORMAL, ReportStatus.IN_PROGRESS, null),
-                new ReportSpec("Sinkhole forming on side street", "A small sinkhole is growing after heavy rain, needs urgent patching.", "Pothole / Damaged Road", 1, 16.8300, 96.1550, "Inya Road, Bahan", ReportPriority.URGENT, ReportStatus.IN_PROGRESS, null),
-                new ReportSpec("Blocked storm drain causing flooding", "Storm drain is fully blocked with debris, road floods every time it rains.", "Water Leakage / Drainage", 2, 16.8100, 96.1180, "Baho Road, Sanchaung", ReportPriority.HIGH, ReportStatus.IN_PROGRESS, null),
-                new ReportSpec("Overflowing public bins at bus stop", "Public bins near the bus stop overflow daily.", "Garbage / Sanitation", 3, 16.7830, 96.1500, "Merchant Street, Pabedan", ReportPriority.NORMAL, ReportStatus.IN_PROGRESS, null),
-                new ReportSpec("Broken bench and litter at riverside park", "Several benches are broken and litter has piled up.", "Park & Public Space", 4, 16.7700, 96.1650, "Riverside Park, Botahtaung", ReportPriority.LOW, ReportStatus.IN_PROGRESS, null),
-                new ReportSpec("Damaged staircase at public clinic", "Concrete staircase steps are cracked and unsafe for elderly patients.", "Damaged Public Building", 5, 16.8600, 96.1700, "North Okkalapa Public Clinic", ReportPriority.HIGH, ReportStatus.IN_PROGRESS, null),
+                new ReportSpec("Flickering streetlights along university avenue", "Multiple streetlights flicker on and off, likely a wiring fault.", "Street Light Outage", 0, 16.8460, 96.1330, "University Avenue Road, Kamayut", ReportPriority.NORMAL, ReportStatus.IN_PROGRESS, null),
+                new ReportSpec("Sinkhole forming on side street", "A small sinkhole is growing after heavy rain, needs urgent patching.", "Pothole / Damaged Road Surface", 1, 16.8300, 96.1550, "Inya Road, Bahan", ReportPriority.URGENT, ReportStatus.IN_PROGRESS, null),
+                new ReportSpec("Blocked storm drain causing flooding", "Storm drain is fully blocked with debris, road floods every time it rains.", "Street Flooding", 2, 16.8100, 96.1180, "Baho Road, Sanchaung", ReportPriority.HIGH, ReportStatus.IN_PROGRESS, null),
+                new ReportSpec("Overflowing public bins at bus stop", "Public bins near the bus stop overflow daily.", "Uncollected Garbage", 3, 16.7830, 96.1500, "Merchant Street, Pabedan", ReportPriority.NORMAL, ReportStatus.IN_PROGRESS, null),
+                new ReportSpec("Fallen tree blocking riverside park path", "A large tree came down after the storm and is blocking the main footpath.", "Fallen Tree or Overgrown Vegetation", 4, 16.7700, 96.1650, "Riverside Park, Botahtaung", ReportPriority.LOW, ReportStatus.IN_PROGRESS, null),
+                new ReportSpec("Damaged staircase at public clinic", "Concrete staircase steps are cracked and unsafe for elderly patients.", "Unsafe or Damaged Public Building", 5, 16.8600, 96.1700, "North Okkalapa Public Clinic", ReportPriority.HIGH, ReportStatus.IN_PROGRESS, null),
 
                 // -- RESOLVED (fixed, awaiting citizen close-out / feedback) --
-                new ReportSpec("Dark alley near bus stop now lit", "Streetlight was out for two weeks near the bus stop, reported for safety.", "Street Lighting / Power Outage", 6, 16.8330, 96.1410, "Yankin Road, Yankin", ReportPriority.HIGH, ReportStatus.RESOLVED, null),
-                new ReportSpec("Pothole on main junction repaired", "Deep pothole at the junction was causing traffic slowdowns.", "Pothole / Damaged Road", 0, 16.8050, 96.1500, "Kabar Aye Pagoda Road, Bahan", ReportPriority.HIGH, ReportStatus.RESOLVED, null),
-                new ReportSpec("Leaking pipe near school fixed", "Pipe leak was flooding the school entrance during rainy season.", "Water Leakage / Drainage", 1, 16.8480, 96.1740, "Thingangyun Road, Thingangyun", ReportPriority.NORMAL, ReportStatus.RESOLVED, null),
-                new ReportSpec("Garbage collection restored on schedule", "Garbage had piled up for over a week before this report.", "Garbage / Sanitation", 2, 16.8600, 96.2000, "North Okkalapa Ward 3", ReportPriority.NORMAL, ReportStatus.RESOLVED, null),
-                new ReportSpec("Playground equipment repaired", "Broken slide at the neighbourhood playground has been fixed.", "Park & Public Space", 3, 16.8180, 96.1600, "Aung San Stadium Park, Mingalar Taung Nyunt", ReportPriority.LOW, ReportStatus.RESOLVED, null),
-                new ReportSpec("Public restroom repairs completed", "Plumbing and door lock at the public restroom were repaired.", "Damaged Public Building", 4, 16.7950, 96.1450, "City Hall Public Restroom, Kyauktada", ReportPriority.NORMAL, ReportStatus.RESOLVED, null),
+                new ReportSpec("Dark alley near bus stop now lit", "Streetlight was out for two weeks near the bus stop, reported for safety.", "Street Light Outage", 6, 16.8330, 96.1410, "Yankin Road, Yankin", ReportPriority.HIGH, ReportStatus.RESOLVED, null),
+                new ReportSpec("Pothole on main junction repaired", "Deep pothole at the junction was causing traffic slowdowns.", "Pothole / Damaged Road Surface", 0, 16.8050, 96.1500, "Kabar Aye Pagoda Road, Bahan", ReportPriority.HIGH, ReportStatus.RESOLVED, null),
+                new ReportSpec("Water supply restored near school", "No water reached the school or nearby homes for three days before the fault was traced and fixed.", "Water Supply Failure", 1, 16.8480, 96.1740, "Thingangyun Road, Thingangyun", ReportPriority.NORMAL, ReportStatus.RESOLVED, null),
+                new ReportSpec("Garbage collection restored on schedule", "Garbage had piled up for over a week before this report.", "Uncollected Garbage", 2, 16.8600, 96.2000, "North Okkalapa Ward 3", ReportPriority.NORMAL, ReportStatus.RESOLVED, null),
+                new ReportSpec("Playground equipment repaired", "Broken slide at the neighbourhood playground has been fixed.", "Damaged Park or Playground Equipment", 3, 16.8180, 96.1600, "Aung San Stadium Park, Mingalar Taung Nyunt", ReportPriority.LOW, ReportStatus.RESOLVED, null),
+                new ReportSpec("Public restroom repairs completed", "Plumbing and door lock at the public restroom were repaired.", "Unsafe or Damaged Public Building", 4, 16.7950, 96.1450, "City Hall Public Restroom, Kyauktada", ReportPriority.NORMAL, ReportStatus.RESOLVED, null),
 
                 // -- CLOSED (confirmed fixed, terminal) --
-                new ReportSpec("Faulty transformer replaced", "Old transformer was sparking intermittently at night.", "Street Lighting / Power Outage", 5, 16.8390, 96.1210, "Hlaing Campus Road, Hlaing", ReportPriority.URGENT, ReportStatus.CLOSED, null),
-                new ReportSpec("Road resurfacing completed", "Damaged road surface near the roundabout has been resurfaced.", "Pothole / Damaged Road", 6, 16.7980, 96.1650, "Tarmwe Roundabout, Tarmwe", ReportPriority.HIGH, ReportStatus.CLOSED, null),
-                new ReportSpec("Drainage cleared before rainy season", "Clogged drain was fully cleared and inspected.", "Water Leakage / Drainage", 0, 16.8700, 96.1500, "Insein Road, Insein", ReportPriority.NORMAL, ReportStatus.CLOSED, null),
-                new ReportSpec("New bins installed at market", "Extra bins were installed after repeated overflow complaints.", "Garbage / Sanitation", 1, 16.7770, 96.1580, "Latha Market, Latha", ReportPriority.NORMAL, ReportStatus.CLOSED, null)
+                new ReportSpec("Faulty transformer replaced", "Old transformer was sparking intermittently at night.", "Power Outage or Exposed Cable", 5, 16.8390, 96.1210, "Hlaing Campus Road, Hlaing", ReportPriority.URGENT, ReportStatus.CLOSED, null),
+                new ReportSpec("Road resurfacing completed", "Damaged road surface near the roundabout has been resurfaced.", "Pothole / Damaged Road Surface", 6, 16.7980, 96.1650, "Tarmwe Roundabout, Tarmwe", ReportPriority.HIGH, ReportStatus.CLOSED, null),
+                new ReportSpec("Drainage cleared before rainy season", "Clogged drain was fully cleared and inspected.", "Blocked Drain or Clogged Culvert", 0, 16.8700, 96.1500, "Insein Road, Insein", ReportPriority.NORMAL, ReportStatus.CLOSED, null),
+                new ReportSpec("New bins installed at market", "Extra bins were installed after repeated overflow complaints.", "Uncollected Garbage", 1, 16.7770, 96.1580, "Latha Market, Latha", ReportPriority.NORMAL, ReportStatus.CLOSED, null)
         );
 
         for (int i = 0; i < specs.size(); i++) {

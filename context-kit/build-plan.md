@@ -65,7 +65,7 @@ Deliverables the rubric grades under "Requirements Analysis & Design" (20%).
 ### Backend
 - `department/` — entity, repository, DTOs, mapper, service, controller (full CRUD, soft delete)
 - `category/` — entity, repository, DTOs, mapper, service, controller (full CRUD, soft delete, `departmentId` required)
-- Seed 6 departments and their categories
+- Seed 7 departments (YCDC-aligned real names, no "Engineering Department" prefix) and their 14 categories
 - Tests: category must reference an active department; deleting a department in use is a soft delete
 
 ### Frontend

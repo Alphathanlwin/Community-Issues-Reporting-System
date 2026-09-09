@@ -61,7 +61,7 @@
           }
         },
         {
-          "name": "Login (Staff — Electricity)",
+          "name": "Login (Staff — YESC)",
           "event": [
             {
               "listen": "test",
@@ -345,7 +345,7 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"body\": \"Crew needs Water dept. to shut off the main first.\",\n  \"mentionedDepartmentId\": {{departmentId}}\n}" },
+            "body": { "mode": "raw", "raw": "{\n  \"body\": \"Crew needs Water & Sanitation dept. to shut off the main first.\",\n  \"mentionedDepartmentId\": {{departmentId}}\n}" },
             "url": { "raw": "{{baseUrl}}/reports/{{reportId}}/comments", "host": ["{{baseUrl}}"], "path": ["reports", "{{reportId}}", "comments"] }
           }
         },

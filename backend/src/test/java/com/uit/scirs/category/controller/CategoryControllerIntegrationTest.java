@@ -34,13 +34,13 @@ class CategoryControllerIntegrationTest {
         mockMvc.perform(get("/api/categories").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()", org.hamcrest.Matchers.greaterThanOrEqualTo(6)))
-                .andExpect(jsonPath("$[?(@.name == 'Pothole / Damaged Road')]").exists());
+                .andExpect(jsonPath("$[?(@.name == 'Pothole / Damaged Road Surface')]").exists());
     }
 
     @Test
     void create_withAdminTokenAndActiveDepartment_returns201() throws Exception {
         String adminToken = jwtUtil.generateToken(1L, "admin@scirs.gov", RoleName.ADMIN.name(), null);
-        long roadsId = departmentRepository.findByName("Roads").orElseThrow().getId();
+        long roadsId = departmentRepository.findByName("Roads & Bridges Department").orElseThrow().getId();
 
         mockMvc.perform(post("/api/categories")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
@@ -55,7 +55,7 @@ class CategoryControllerIntegrationTest {
     @Test
     void create_withInactiveDepartment_returns400() throws Exception {
         String adminToken = jwtUtil.generateToken(1L, "admin@scirs.gov", RoleName.ADMIN.name(), null);
-        long parksId = departmentRepository.findByName("Parks").orElseThrow().getId();
+        long parksId = departmentRepository.findByName("Playgrounds, Parks & Gardens Department").orElseThrow().getId();
 
         // Soft-delete the Parks department so the category creation must be rejected.
         mockMvc.perform(delete("/api/departments/" + parksId)
@@ -87,7 +87,7 @@ class CategoryControllerIntegrationTest {
     @Test
     void create_withCitizenToken_returns403() throws Exception {
         String citizenToken = jwtUtil.generateToken(2L, "citizen@example.com", RoleName.CITIZEN.name(), null);
-        long roadsId = departmentRepository.findByName("Roads").orElseThrow().getId();
+        long roadsId = departmentRepository.findByName("Roads & Bridges Department").orElseThrow().getId();
 
         mockMvc.perform(post("/api/categories")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + citizenToken)

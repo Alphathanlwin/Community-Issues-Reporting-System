@@ -42,7 +42,7 @@ class ReportMapControllerIntegrationTest {
     @Test
     void getMapPins_asCitizen_excludesPendingApprovalAndRejected() throws Exception {
         User citizen = persistCitizen("map-citizen1@example.com");
-        Category category = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Category category = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
 
         Report pending = persistReport(citizen, category, ReportStatus.PENDING_APPROVAL, "16.8000000", "96.1000000");
         Report rejected = persistReport(citizen, category, ReportStatus.REJECTED, "16.8000000", "96.1000000");
@@ -60,7 +60,7 @@ class ReportMapControllerIntegrationTest {
     @Test
     void getMapPins_asAdmin_includesPendingApprovalAndRejected() throws Exception {
         User citizen = persistCitizen("map-citizen2@example.com");
-        Category category = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Category category = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
 
         Report pending = persistReport(citizen, category, ReportStatus.PENDING_APPROVAL, "16.8000000", "96.1000000");
         String adminToken = token(adminUser(), RoleName.ADMIN, null);
@@ -73,7 +73,7 @@ class ReportMapControllerIntegrationTest {
     @Test
     void getMapPins_returnsSlimPayloadShape() throws Exception {
         User citizen = persistCitizen("map-citizen3@example.com");
-        Category category = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Category category = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
         Report report = persistReport(citizen, category, ReportStatus.ASSIGNED, "16.8409000", "96.1735000");
 
         mockMvc.perform(get("/api/reports/map").header(HttpHeaders.AUTHORIZATION, "Bearer " + token(citizen, RoleName.CITIZEN, null)))
@@ -86,7 +86,7 @@ class ReportMapControllerIntegrationTest {
     @Test
     void getMapPins_filteredByBoundingBox_excludesReportsOutsideBounds() throws Exception {
         User citizen = persistCitizen("map-citizen4@example.com");
-        Category category = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Category category = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
 
         Report inside = persistReport(citizen, category, ReportStatus.ASSIGNED, "16.8000000", "96.1000000");
         Report outside = persistReport(citizen, category, ReportStatus.ASSIGNED, "20.0000000", "100.0000000");
@@ -105,7 +105,7 @@ class ReportMapControllerIntegrationTest {
     @Test
     void getMapPins_filteredByStatus_returnsOnlyMatchingStatus() throws Exception {
         User citizen = persistCitizen("map-citizen5@example.com");
-        Category category = categoryRepository.findByName("Pothole / Damaged Road").orElseThrow();
+        Category category = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
 
         Report assigned = persistReport(citizen, category, ReportStatus.ASSIGNED, "16.8000000", "96.1000000");
         Report inProgress = persistReport(citizen, category, ReportStatus.IN_PROGRESS, "16.8000000", "96.1000000");

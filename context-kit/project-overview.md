@@ -59,7 +59,7 @@ SCIRS is a centralized, web-based platform that demonstrates core Java Enterpris
 
 ### Citizen (mobile-focused)
 - **Home** — personal summary: own recent reports, own score, quick "Report" action
-- **Map** — all approved reports as pins, filterable (All, Electricity, Roads/Buildings, Water, Sanitation, Parks)
+- **Map** — all approved reports as pins, filterable (All, Roads & Bridges, Buildings, Water & Sanitation, Drainage Management, Urban Environmental Conservation & Cleansing, Playgrounds/Parks & Gardens, YESC)
 - **Leaderboard** — citizens ranked by score points
 - **My Score** — own point total and point history
 - **Report** — submit new report: GPS location, category, problem statement (pick an option or type it in), image, upload button; plus own report history with date/time
@@ -69,7 +69,7 @@ SCIRS is a centralized, web-based platform that demonstrates core Java Enterpris
 - **Dashboard** — map, total reports, total resolved, total remaining, total new reports, monthly graphs per department, recent reports table (5–10 rows)
 - **Reports** — all reports, filter by status/type, search box, per-row "view details", assign to department, change status, add comments for the department, upload completion photos
 - **Map View** — full-screen, full filter set (category/status), clustering of nearby reports
-- **Departments** — Electricity, Roads, Water, Sanitation, Parks, Buildings; workload per department (bar/pie charts) and performance statistics
+- **Departments** — Roads & Bridges, Buildings, Water & Sanitation, Drainage Management, Urban Environmental Conservation & Cleansing, Playgrounds/Parks & Gardens, YESC; workload per department (bar/pie charts) and performance statistics
 - **Settings** — user management, roles and permissions, categories, departments, profile
 - **Notifications** — new reports, urgent reports, reports waiting too long, department mentions, completed reports
 
@@ -200,3 +200,4 @@ Conflicts between source documents and how they were resolved. Append new decisi
 | D13 | D4's Supabase Storage fallback is now actually implemented (`SupabaseStorageService`, selected via `app.storage.provider=supabase`) rather than only documented as a future path | Needed for a real deploy — Render's free-plan container disk is ephemeral, so `LocalStorageService` alone loses every uploaded report photo on redeploy/restart. See `progress-tracker.md` § Decisions (2026-09-04) for implementation details. |
 | D19 | Priority is calculated automatically by `PriorityService` (category severity + duplicate count + report age) at approval time, replacing the static `NORMAL` default | Demonstrates real business-rule logic for the Technical Implementation and Requirements Analysis rubric criteria. The existing manual `PATCH /api/reports/{id}/priority` endpoint is kept, not removed — it now serves as a post-approval override (e.g. a duplicate surfaced later) rather than the sole way priority is ever set. |
 | D20 | Proximity-based duplicate detection (100m + same category + non-terminal status) with citizen confirmation is in scope | Problem #6 of the problem statement requires it. Geometric proximity matching (bounding box + Haversine distance in Java, no PostGIS) is a spatial query, not an AI feature, so it does not conflict with the Out of Scope exclusion of AI duplicate detection. (Numbered D20, not D13 as originally drafted — D13 was already taken by the Supabase Storage decision; see `progress-tracker.md` § Decisions for the full implementation writeup.) |
+| D21 | Departments were renamed to real YCDC-aligned names with the "Engineering Department" grouping dropped (`Roads & Bridges Department`, `Buildings Department`, `Water & Sanitation Department`, `Drainage Management Department` (new), `Urban Environmental Conservation & Cleansing Department`, `Playgrounds, Parks & Gardens Department`, `Yangon Electricity Supply Corporation (YESC)`), and categories expanded from 6 to 14 (two per department) | User asked for a realistic, non-placeholder taxonomy for the graded demo. Renamed in place via a `legacyName` field on the seed record (not a delete + re-insert), so a database already seeded with the old 6 names keeps its `department_id`/`category_id` foreign keys on existing reports, staff, and history. See `progress-tracker.md` § Decisions (2026-09-09) for the full implementation writeup, including which demo reports were rewritten to cover the new categories. |

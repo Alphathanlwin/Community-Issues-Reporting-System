@@ -58,8 +58,8 @@ class ReportWorkflowServiceTest {
 
     @Test
     void approve_setsStatusAssignedAndRoutesToCategoryDepartment() {
-        Department roads = department(2L, "Roads");
-        Category pothole = category(1L, "Pothole / Damaged Road", roads);
+        Department roads = department(2L, "Roads & Bridges Department");
+        Category pothole = category(1L, "Pothole / Damaged Road Surface", roads);
         Report report = report(10L, ReportStatus.PENDING_APPROVAL, pothole);
         User admin = user(99L, RoleName.ADMIN, null);
 
@@ -82,7 +82,7 @@ class ReportWorkflowServiceTest {
 
     @Test
     void approve_whenNotPendingApproval_throwsInvalidStatusTransitionException() {
-        Report report = report(10L, ReportStatus.ASSIGNED, category(1L, "Pothole", department(2L, "Roads")));
+        Report report = report(10L, ReportStatus.ASSIGNED, category(1L, "Pothole", department(2L, "Roads & Bridges Department")));
         when(reportRepository.findById(10L)).thenReturn(Optional.of(report));
 
         assertThatThrownBy(() -> workflowService.approve(10L, currentUser(99L, RoleName.ADMIN, null)))
@@ -93,7 +93,7 @@ class ReportWorkflowServiceTest {
 
     @Test
     void reject_requiresReasonAndAwardsNegativeFive() {
-        Report report = report(10L, ReportStatus.PENDING_APPROVAL, category(1L, "Pothole", department(2L, "Roads")));
+        Report report = report(10L, ReportStatus.PENDING_APPROVAL, category(1L, "Pothole", department(2L, "Roads & Bridges Department")));
         User admin = user(99L, RoleName.ADMIN, null);
 
         when(reportRepository.findById(10L)).thenReturn(Optional.of(report));
@@ -120,7 +120,7 @@ class ReportWorkflowServiceTest {
             "IN_PROGRESS, ASSIGNED, false"
     })
     void changeStatus_allowsOnlyMatrixTransitions(ReportStatus from, ReportStatus to, boolean allowed) {
-        Department roads = department(2L, "Roads");
+        Department roads = department(2L, "Roads & Bridges Department");
         Report report = report(10L, from, category(1L, "Pothole", roads));
         report.setDepartment(roads);
         User staff = user(50L, RoleName.STAFF, 2L);
@@ -146,7 +146,7 @@ class ReportWorkflowServiceTest {
 
     @Test
     void changeStatus_toResolvedWithoutCompletionPhoto_throwsBusinessRuleException() {
-        Department roads = department(2L, "Roads");
+        Department roads = department(2L, "Roads & Bridges Department");
         Report report = report(10L, ReportStatus.IN_PROGRESS, category(1L, "Pothole", roads));
         report.setDepartment(roads);
 
@@ -165,7 +165,7 @@ class ReportWorkflowServiceTest {
 
     @Test
     void changeStatus_whenStaffFromAnotherDepartment_throwsAccessDeniedException() {
-        Department roads = department(2L, "Roads");
+        Department roads = department(2L, "Roads & Bridges Department");
         Report report = report(10L, ReportStatus.ASSIGNED, category(1L, "Pothole", roads));
         report.setDepartment(roads);
 
@@ -182,7 +182,7 @@ class ReportWorkflowServiceTest {
 
     @Test
     void updatePriority_withValidValue_setsPriority() {
-        Department roads = department(2L, "Roads");
+        Department roads = department(2L, "Roads & Bridges Department");
         Report report = report(10L, ReportStatus.ASSIGNED, category(1L, "Pothole", roads));
         report.setDepartment(roads);
 
@@ -200,7 +200,7 @@ class ReportWorkflowServiceTest {
 
     @Test
     void updatePriority_withUnknownValue_throwsBusinessRuleException() {
-        Department roads = department(2L, "Roads");
+        Department roads = department(2L, "Roads & Bridges Department");
         Report report = report(10L, ReportStatus.ASSIGNED, category(1L, "Pothole", roads));
         report.setDepartment(roads);
 
@@ -217,7 +217,7 @@ class ReportWorkflowServiceTest {
 
     @Test
     void updatePriority_whenStaffFromAnotherDepartment_throwsAccessDeniedException() {
-        Department roads = department(2L, "Roads");
+        Department roads = department(2L, "Roads & Bridges Department");
         Report report = report(10L, ReportStatus.ASSIGNED, category(1L, "Pothole", roads));
         report.setDepartment(roads);
 

@@ -75,7 +75,7 @@ class ReportServiceTest {
     @Test
     void createReport_withApprovedCitizen_savesReportWithPendingApprovalStatusAndOwner() {
         User citizen = approvedCitizen(7L);
-        Category category = category(3L, "Pothole / Damaged Road");
+        Category category = category(3L, "Pothole / Damaged Road Surface");
         CreateReportDTO dto = createDto(3L);
 
         when(userRepository.findById(7L)).thenReturn(Optional.of(citizen));
@@ -152,7 +152,7 @@ class ReportServiceTest {
     @Test
     void createReport_withImage_invokesFileStorageAndSavesReturnedUrl() {
         User citizen = approvedCitizen(7L);
-        Category category = category(3L, "Pothole / Damaged Road");
+        Category category = category(3L, "Pothole / Damaged Road Surface");
         CreateReportDTO dto = createDto(3L);
         MultipartFile image = new MockMultipartFile("images", "pothole.jpg", "image/jpeg", new byte[]{1, 2, 3});
 
@@ -183,7 +183,7 @@ class ReportServiceTest {
     @Test
     void submitReport_noDuplicatesFound_createsReportNormally() {
         User citizen = approvedCitizen(7L);
-        Category category = category(3L, "Pothole / Damaged Road");
+        Category category = category(3L, "Pothole / Damaged Road Surface");
         CreateReportDTO dto = createDto(3L);
 
         when(userRepository.findById(7L)).thenReturn(Optional.of(citizen));
@@ -230,7 +230,7 @@ class ReportServiceTest {
     @Test
     void submitReport_withForceCreate_skipsDuplicateCheckAndMarksDuplicateChecked() {
         User citizen = approvedCitizen(7L);
-        Category category = category(3L, "Pothole / Damaged Road");
+        Category category = category(3L, "Pothole / Damaged Road Surface");
         CreateReportDTO dto = createDto(3L);
         dto.setForceCreate(true);
 

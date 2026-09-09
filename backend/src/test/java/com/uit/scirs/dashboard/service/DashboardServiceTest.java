@@ -121,7 +121,7 @@ class DashboardServiceTest {
     void getDepartmentPerformance_defaultsMissingMetricsForADepartmentWithNoData() {
         Department roads = new Department();
         roads.setId(2L);
-        roads.setName("Roads");
+        roads.setName("Roads & Bridges Department");
         when(departmentRepository.findAll()).thenReturn(List.of(roads));
         when(reportRepository.countOpenAndResolvedByDepartment(anyList(), anyList())).thenReturn(List.of());
         when(reportRepository.findResolutionTimes()).thenReturn(List.of());
@@ -142,7 +142,7 @@ class DashboardServiceTest {
     void getDepartmentPerformance_computesResolutionHoursAndRatingWhenDataExists() {
         Department roads = new Department();
         roads.setId(2L);
-        roads.setName("Roads");
+        roads.setName("Roads & Bridges Department");
         when(departmentRepository.findAll()).thenReturn(List.of(roads));
 
         DepartmentStatusCountProjection counts = statusCount(2L, 3L, 5L);
@@ -167,7 +167,7 @@ class DashboardServiceTest {
     void getCategoryVolume_defaultsToZeroForACategoryWithNoReports() {
         Category pothole = new Category();
         pothole.setId(1L);
-        pothole.setName("Pothole / Damaged Road");
+        pothole.setName("Pothole / Damaged Road Surface");
         pothole.setColorHex("#F97316");
         when(categoryRepository.findAll()).thenReturn(List.of(pothole));
         when(reportRepository.countGroupedByCategory()).thenReturn(List.of());

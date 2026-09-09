@@ -44,8 +44,8 @@ class ReportAssignmentServiceTest {
 
     @Test
     void assign_withDepartmentOnly_reassignsDepartmentAndWritesSameStatusHistory() {
-        Department roads = department(2L, "Roads");
-        Department water = department(3L, "Water");
+        Department roads = department(2L, "Roads & Bridges Department");
+        Department water = department(3L, "Water & Sanitation Department");
         Report report = report(10L, ReportStatus.ASSIGNED, roads);
         User admin = user(99L, RoleName.ADMIN, null);
 
@@ -67,7 +67,7 @@ class ReportAssignmentServiceTest {
 
     @Test
     void assign_withStaffBelongingToCurrentDepartment_assignsStaff() {
-        Department roads = department(2L, "Roads");
+        Department roads = department(2L, "Roads & Bridges Department");
         Report report = report(10L, ReportStatus.ASSIGNED, roads);
         User admin = user(99L, RoleName.ADMIN, null);
         User staff = user(50L, RoleName.STAFF, 2L);
@@ -90,7 +90,7 @@ class ReportAssignmentServiceTest {
 
     @Test
     void assign_withStaffFromAnotherDepartment_throwsBusinessRuleException() {
-        Department roads = department(2L, "Roads");
+        Department roads = department(2L, "Roads & Bridges Department");
         Report report = report(10L, ReportStatus.ASSIGNED, roads);
         User staff = user(50L, RoleName.STAFF, 3L);
 
@@ -108,7 +108,7 @@ class ReportAssignmentServiceTest {
 
     @Test
     void assign_withNonStaffUserAsStaffId_throwsBusinessRuleException() {
-        Department roads = department(2L, "Roads");
+        Department roads = department(2L, "Roads & Bridges Department");
         Report report = report(10L, ReportStatus.ASSIGNED, roads);
         User citizen = user(7L, RoleName.CITIZEN, null);
 
@@ -136,7 +136,7 @@ class ReportAssignmentServiceTest {
 
     @Test
     void assign_whenReportIsTerminal_throwsBusinessRuleException() {
-        Department roads = department(2L, "Roads");
+        Department roads = department(2L, "Roads & Bridges Department");
         Report report = report(10L, ReportStatus.CLOSED, roads);
 
         when(reportRepository.findById(10L)).thenReturn(Optional.of(report));
@@ -152,9 +152,9 @@ class ReportAssignmentServiceTest {
 
     @Test
     void assign_withInactiveDepartment_throwsBusinessRuleException() {
-        Department roads = department(2L, "Roads");
+        Department roads = department(2L, "Roads & Bridges Department");
         Report report = report(10L, ReportStatus.ASSIGNED, roads);
-        Department inactive = department(4L, "Buildings");
+        Department inactive = department(4L, "Buildings Department");
         inactive.setActive(false);
 
         when(reportRepository.findById(10L)).thenReturn(Optional.of(report));
@@ -171,7 +171,7 @@ class ReportAssignmentServiceTest {
 
     @Test
     void assign_withUnknownDepartment_throwsResourceNotFoundException() {
-        Department roads = department(2L, "Roads");
+        Department roads = department(2L, "Roads & Bridges Department");
         Report report = report(10L, ReportStatus.ASSIGNED, roads);
 
         when(reportRepository.findById(10L)).thenReturn(Optional.of(report));

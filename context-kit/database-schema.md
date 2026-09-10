@@ -278,6 +278,43 @@ Constraint: UNIQUE `(report_id, citizen_id)` — a citizen can only confirm the 
 
 ---
 
+### 13. `audit_logs`
+
+Immutable trail of administrative and staff operations that change system state
+(account reviews, department/category changes, report approvals and
+transitions). Never updated, never deleted. Written by `AuditService.record()`
+in its own `REQUIRES_NEW` transaction so an audit-write failure can never break
+the operation being recorded. Actor and target are stored as **denormalised
+snapshots** (id + label), not FK relations — the row stays readable even after
+the actor or target is renamed or deactivated (same plain-FK-id convention
+`users.department_id` follows).
+
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | BIGINT (PK) | Auto-increment |
+| actor_id | BIGINT | nullable (null = system action); NOT a FK — snapshot only |
+| actor_name | VARCHAR(150) | NOT NULL (full name at the time, or `"System"`) |
+| actor_email | VARCHAR(150) | nullable |
+| action | VARCHAR(40) (Enum → `AuditAction`) | NOT NULL |
+| target_type | VARCHAR(30) | NOT NULL — `USER` \| `DEPARTMENT` \| `CATEGORY` \| `REPORT` |
+| target_id | BIGINT | nullable — snapshot only, not a FK |
+| target_label | VARCHAR(300) | NOT NULL — human snapshot (e.g. `RPT-2026-0007 — Broken streetlight`) |
+| details | VARCHAR(500) | nullable — state change (`PENDING → APPROVED`), reason, etc. |
+| created_at | TIMESTAMP | NOT NULL |
+
+**Indexes:** `created_at`, `action`, `actor_id`.
+
+**Enum: `AuditAction`** — `USER_APPROVED`, `USER_REJECTED`, `USER_SUSPENDED`,
+`STAFF_CREATED`, `DEPARTMENT_CREATED`, `DEPARTMENT_UPDATED`,
+`DEPARTMENT_DEACTIVATED`, `CATEGORY_CREATED`, `CATEGORY_UPDATED`,
+`CATEGORY_DEACTIVATED`, `REPORT_APPROVED`, `REPORT_REJECTED`,
+`REPORT_STATUS_CHANGED`, `REPORT_ASSIGNED`, `REPORT_PRIORITY_CHANGED`
+
+Append-only: no update or delete endpoint exists. Exposed read-only through
+`GET /api/audit-logs` (ADMIN only).
+
+---
+
 ## Entity Relationship Diagram
 
 ```
@@ -351,6 +388,7 @@ Aggregate dashboard queries (issue volume by category, average resolution time, 
 | `ReportStatus` | `PENDING_APPROVAL`, `REJECTED`, `ASSIGNED`, `IN_PROGRESS`, `RESOLVED`, `CLOSED` |
 | `ReportPriority` | `LOW`, `NORMAL`, `HIGH`, `URGENT` |
 | `ImageType` | `REPORT_PHOTO`, `RESOLUTION_PHOTO` |
+| `AuditAction` | `USER_APPROVED`, `USER_REJECTED`, `USER_SUSPENDED`, `STAFF_CREATED`, `DEPARTMENT_CREATED`, `DEPARTMENT_UPDATED`, `DEPARTMENT_DEACTIVATED`, `CATEGORY_CREATED`, `CATEGORY_UPDATED`, `CATEGORY_DEACTIVATED`, `REPORT_APPROVED`, `REPORT_REJECTED`, `REPORT_STATUS_CHANGED`, `REPORT_ASSIGNED`, `REPORT_PRIORITY_CHANGED` |
 | `NotificationType` | `NEW_REPORT`, `URGENT_REPORT`, `REPORT_WAITING_TOO_LONG`, `DEPARTMENT_MENTION`, `STATUS_CHANGED`, `REPORT_APPROVED`, `REPORT_REJECTED`, `REPORT_COMPLETED`, `ACCOUNT_APPROVED`, `ACCOUNT_REJECTED` |
 | `PointReason` | `REPORT_APPROVED`, `REPORT_RESOLVED`, `FEEDBACK_GIVEN`, `REPORT_REJECTED`, `CONFIRMATION_GIVEN` |
 
@@ -360,6 +398,6 @@ All enums are persisted with `@Enumerated(EnumType.STRING)` — never `ORDINAL`.
 
 1. Deleting a user is a **soft delete** (`is_active = false`) — historical reports must survive.
 2. Deleting a category or department is a soft delete (`is_active = false`) — existing reports keep their FK.
-3. `report_status_history` and `point_transactions` are append-only. No update or delete endpoints exist for them.
+3. `report_status_history`, `point_transactions` and `audit_logs` are append-only. No update or delete endpoints exist for them.
 4. Money-free schema — no decimal precision issues, but coordinates must stay `DECIMAL(10,7)` (≈1 cm precision) and never `FLOAT`.
 5. All timestamps are stored in UTC; the frontend formats to local time.

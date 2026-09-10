@@ -1,5 +1,7 @@
 package com.uit.scirs.report.service;
 
+import com.uit.scirs.audit.entity.AuditAction;
+import com.uit.scirs.audit.service.AuditService;
 import com.uit.scirs.common.exception.BusinessRuleException;
 import com.uit.scirs.common.exception.ResourceNotFoundException;
 import com.uit.scirs.common.security.CurrentUser;
@@ -38,17 +40,20 @@ public class ReportAssignmentService {
     private final UserRepository userRepository;
     private final ReportMapper reportMapper;
     private final StatusHistoryService statusHistoryService;
+    private final AuditService auditService;
 
     public ReportAssignmentService(ReportRepository reportRepository,
                                     DepartmentRepository departmentRepository,
                                     UserRepository userRepository,
                                     ReportMapper reportMapper,
-                                    StatusHistoryService statusHistoryService) {
+                                    StatusHistoryService statusHistoryService,
+                                    AuditService auditService) {
         this.reportRepository = reportRepository;
         this.departmentRepository = departmentRepository;
         this.userRepository = userRepository;
         this.reportMapper = reportMapper;
         this.statusHistoryService = statusHistoryService;
+        this.auditService = auditService;
     }
 
     @Transactional
@@ -82,7 +87,10 @@ public class ReportAssignmentService {
         // exception rather than a misleading "acting user not found".
         User adminUser = findUser(admin.getId());
         Report saved = reportRepository.save(report);
-        statusHistoryService.record(saved, saved.getStatus(), saved.getStatus(), adminUser, String.join(" ", remarks));
+        String change = String.join(" ", remarks);
+        statusHistoryService.record(saved, saved.getStatus(), saved.getStatus(), adminUser, change);
+        auditService.record(AuditAction.REPORT_ASSIGNED, "REPORT", saved.getId(),
+                saved.getReportCode() + " — " + saved.getTitle(), change);
 
         return reportMapper.toDTO(saved);
     }

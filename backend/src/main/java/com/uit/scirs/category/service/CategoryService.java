@@ -4,6 +4,8 @@ import com.uit.scirs.category.dto.CategoryDTO;
 import com.uit.scirs.category.dto.CreateCategoryDTO;
 import com.uit.scirs.category.dto.UpdateCategoryDTO;
 import com.uit.scirs.category.entity.Category;
+import com.uit.scirs.audit.entity.AuditAction;
+import com.uit.scirs.audit.service.AuditService;
 import com.uit.scirs.category.mapper.CategoryMapper;
 import com.uit.scirs.category.repository.CategoryRepository;
 import com.uit.scirs.common.config.CacheConfig;
@@ -25,13 +27,16 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final DepartmentRepository departmentRepository;
     private final CategoryMapper categoryMapper;
+    private final AuditService auditService;
 
     public CategoryService(CategoryRepository categoryRepository,
                             DepartmentRepository departmentRepository,
-                            CategoryMapper categoryMapper) {
+                            CategoryMapper categoryMapper,
+                            AuditService auditService) {
         this.categoryRepository = categoryRepository;
         this.departmentRepository = departmentRepository;
         this.categoryMapper = categoryMapper;
+        this.auditService = auditService;
     }
 
     @Cacheable(CacheConfig.CATEGORIES)
@@ -61,7 +66,10 @@ public class CategoryService {
         category.setIcon(dto.getIcon());
         category.setColorHex(dto.getColorHex());
 
-        return categoryMapper.toDTO(categoryRepository.save(category));
+        Category saved = categoryRepository.save(category);
+        auditService.record(AuditAction.CATEGORY_CREATED, "CATEGORY", saved.getId(),
+                saved.getName(), "Category created · " + department.getName());
+        return categoryMapper.toDTO(saved);
     }
 
     @CacheEvict(value = CacheConfig.CATEGORIES, allEntries = true)
@@ -83,7 +91,10 @@ public class CategoryService {
         category.setIcon(dto.getIcon());
         category.setColorHex(dto.getColorHex());
 
-        return categoryMapper.toDTO(categoryRepository.save(category));
+        Category saved = categoryRepository.save(category);
+        auditService.record(AuditAction.CATEGORY_UPDATED, "CATEGORY", saved.getId(),
+                saved.getName(), "Category updated · " + department.getName());
+        return categoryMapper.toDTO(saved);
     }
 
     @CacheEvict(value = CacheConfig.CATEGORIES, allEntries = true)
@@ -92,6 +103,8 @@ public class CategoryService {
         Category category = findEntity(id);
         category.setActive(false);
         categoryRepository.save(category);
+        auditService.record(AuditAction.CATEGORY_DEACTIVATED, "CATEGORY", category.getId(),
+                category.getName(), "Category deactivated");
     }
 
     private Department requireActiveDepartment(Long departmentId) {

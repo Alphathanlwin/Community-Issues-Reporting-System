@@ -1,5 +1,6 @@
 package com.uit.scirs.category.service;
 
+import com.uit.scirs.audit.service.AuditService;
 import com.uit.scirs.category.dto.CategoryDTO;
 import com.uit.scirs.category.dto.CreateCategoryDTO;
 import com.uit.scirs.category.entity.Category;
@@ -32,6 +33,7 @@ class CategoryServiceTest {
     @Mock CategoryRepository categoryRepository;
     @Mock DepartmentRepository departmentRepository;
     @Mock CategoryMapper categoryMapper;
+    @Mock AuditService auditService;
     @InjectMocks CategoryService categoryService;
 
     @Test

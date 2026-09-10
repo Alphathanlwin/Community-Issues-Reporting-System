@@ -1,5 +1,6 @@
 package com.uit.scirs.user.service;
 
+import com.uit.scirs.audit.service.AuditService;
 import com.uit.scirs.auth.dto.UserDTO;
 import com.uit.scirs.common.exception.BusinessRuleException;
 import com.uit.scirs.common.exception.DuplicateResourceException;
@@ -44,6 +45,7 @@ class UserServiceTest {
     @Mock UserMapper userMapper;
     @Mock PasswordEncoder passwordEncoder;
     @Mock NotificationService notificationService;
+    @Mock AuditService auditService;
     @InjectMocks UserService userService;
 
     @Test

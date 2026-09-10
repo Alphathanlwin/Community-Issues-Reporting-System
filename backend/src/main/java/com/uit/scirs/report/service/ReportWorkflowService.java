@@ -1,5 +1,7 @@
 package com.uit.scirs.report.service;
 
+import com.uit.scirs.audit.entity.AuditAction;
+import com.uit.scirs.audit.service.AuditService;
 import com.uit.scirs.common.config.CacheConfig;
 import com.uit.scirs.common.exception.BusinessRuleException;
 import com.uit.scirs.common.exception.InvalidStatusTransitionException;
@@ -56,6 +58,7 @@ public class ReportWorkflowService {
     private final ScoreService scoreService;
     private final NotificationService notificationService;
     private final PriorityService priorityService;
+    private final AuditService auditService;
 
     public ReportWorkflowService(ReportRepository reportRepository,
                                   ReportImageRepository reportImageRepository,
@@ -64,7 +67,8 @@ public class ReportWorkflowService {
                                   StatusHistoryService statusHistoryService,
                                   ScoreService scoreService,
                                   NotificationService notificationService,
-                                  PriorityService priorityService) {
+                                  PriorityService priorityService,
+                                  AuditService auditService) {
         this.reportRepository = reportRepository;
         this.reportImageRepository = reportImageRepository;
         this.userRepository = userRepository;
@@ -73,6 +77,12 @@ public class ReportWorkflowService {
         this.scoreService = scoreService;
         this.notificationService = notificationService;
         this.priorityService = priorityService;
+        this.auditService = auditService;
+    }
+
+    /** "RPT-2026-0007 — Broken streetlight" — the target snapshot used in the audit trail. */
+    private static String reportLabel(Report report) {
+        return report.getReportCode() + " — " + report.getTitle();
     }
 
     // Newly visible on the public map (leaves PENDING_APPROVAL) and enters
@@ -108,6 +118,8 @@ public class ReportWorkflowService {
         statusHistoryService.record(saved, oldStatus, ReportStatus.ASSIGNED, adminUser, null);
         scoreService.award(saved.getReporter(), PointReason.REPORT_APPROVED, saved);
         notificationService.notifyStatusChange(saved);
+        auditService.record(AuditAction.REPORT_APPROVED, "REPORT", saved.getId(), reportLabel(saved),
+                oldStatus + " → ASSIGNED · routed to " + saved.getDepartment().getName());
 
         return reportMapper.toDTO(saved);
     }
@@ -133,6 +145,10 @@ public class ReportWorkflowService {
         statusHistoryService.record(saved, oldStatus, ReportStatus.REJECTED, adminUser, rejectionReason);
         scoreService.award(saved.getReporter(), PointReason.REPORT_REJECTED, saved);
         notificationService.notifyStatusChange(saved);
+        auditService.record(AuditAction.REPORT_REJECTED, "REPORT", saved.getId(), reportLabel(saved),
+                rejectionReason != null && !rejectionReason.isBlank()
+                        ? oldStatus + " → REJECTED · Reason: " + rejectionReason
+                        : oldStatus + " → REJECTED");
 
         return reportMapper.toDTO(saved);
     }
@@ -179,6 +195,10 @@ public class ReportWorkflowService {
         }
 
         notificationService.notifyStatusChange(saved);
+        auditService.record(AuditAction.REPORT_STATUS_CHANGED, "REPORT", saved.getId(), reportLabel(saved),
+                dto.getRemarks() != null && !dto.getRemarks().isBlank()
+                        ? oldStatus + " → " + newStatus + " · " + dto.getRemarks()
+                        : oldStatus + " → " + newStatus);
 
         return reportMapper.toDTO(saved);
     }
@@ -190,8 +210,12 @@ public class ReportWorkflowService {
         Report report = findEntity(reportId);
         assertStaffOwnsDepartment(report, currentUser);
 
-        report.setPriority(parsePriority(dto.getPriority()));
+        ReportPriority newPriority = parsePriority(dto.getPriority());
+        ReportPriority oldPriority = report.getPriority();
+        report.setPriority(newPriority);
         Report saved = reportRepository.save(report);
+        auditService.record(AuditAction.REPORT_PRIORITY_CHANGED, "REPORT", saved.getId(), reportLabel(saved),
+                (oldPriority != null ? oldPriority : "—") + " → " + newPriority);
         return reportMapper.toDTO(saved);
     }
 

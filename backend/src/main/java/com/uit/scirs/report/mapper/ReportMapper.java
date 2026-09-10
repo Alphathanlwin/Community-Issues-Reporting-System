@@ -107,6 +107,12 @@ public class ReportMapper {
             dto.setCategoryName(entity.getCategory().getName());
             dto.setCategoryColor(entity.getCategory().getColorHex());
         }
+        // Pseudo-anonymous: the reporter's name is stripped for anonymous reports
+        // (the same masking the public feed applies); reporter_id stays server-side.
+        dto.setAnonymous(entity.isAnonymous());
+        if (!entity.isAnonymous() && entity.getReporter() != null) {
+            dto.setReporterName(entity.getReporter().getFullName());
+        }
         dto.setCreatedAt(entity.getCreatedAt());
         return dto;
     }

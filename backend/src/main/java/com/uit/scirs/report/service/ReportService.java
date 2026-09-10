@@ -203,7 +203,18 @@ public class ReportService {
     public ReportDTO getReportById(Long id, CurrentUser currentUser) {
         Report report = findEntity(id);
         assertCanView(report, currentUser);
-        return reportMapper.toDTO(report);
+
+        ReportDTO dto = reportMapper.toDTO(report);
+        // Pseudo-anonymous: a non-owner citizen viewing an anonymous report sees
+        // the same masked reporter the public feed shows. ADMIN/STAFF keep the
+        // real reporter for accountability; the owner always sees their own name.
+        if (report.isAnonymous()
+                && currentUser.getRole() == RoleName.CITIZEN
+                && !report.getReporter().getId().equals(currentUser.getId())) {
+            dto.setReporterId(null);
+            dto.setReporterName(null);
+        }
+        return dto;
     }
 
     @Transactional(readOnly = true)
@@ -353,8 +364,13 @@ public class ReportService {
                 }
             }
             case CITIZEN -> {
-                if (!report.getReporter().getId().equals(user.getId())) {
-                    throw new AccessDeniedException("You can only view your own reports.");
+                // Own reports are always visible (any status). Other citizens'
+                // reports are visible only once they are public — i.e. not
+                // PENDING_APPROVAL or REJECTED — matching the public map / feed.
+                boolean owner = report.getReporter().getId().equals(user.getId());
+                boolean publiclyVisible = !HIDDEN_FROM_CITIZENS.contains(report.getStatus());
+                if (!owner && !publiclyVisible) {
+                    throw new AccessDeniedException("This report is not publicly visible.");
                 }
             }
         }

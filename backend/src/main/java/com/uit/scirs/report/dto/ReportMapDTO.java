@@ -14,6 +14,8 @@ public class ReportMapDTO {
     private String categoryColor;
     private String status;
     private String priority;
+    private String reporterName;
+    private boolean anonymous;
     private LocalDateTime createdAt;
 
     public Long getId() {
@@ -86,6 +88,22 @@ public class ReportMapDTO {
 
     public void setPriority(String priority) {
         this.priority = priority;
+    }
+
+    public String getReporterName() {
+        return reporterName;
+    }
+
+    public void setReporterName(String reporterName) {
+        this.reporterName = reporterName;
+    }
+
+    public boolean isAnonymous() {
+        return anonymous;
+    }
+
+    public void setAnonymous(boolean anonymous) {
+        this.anonymous = anonymous;
     }
 
     public LocalDateTime getCreatedAt() {

@@ -76,9 +76,8 @@ public class MockDataSeeder implements CommandLineRunner {
     private final String publicBaseUrl;
 
     // Bundled demo photos, served from classpath:/seed-images/ via WebConfig at
-    // /seed-images/**. Keyed by category name (see DataSeeder). One "Water
-    // Supply Failure" reuses the pipe-leak shot; a resolution photo reuses the
-    // same image (the folder has no dedicated before/after pairs).
+    // /seed-images/**. Keyed by category name (see DataSeeder). "Water Supply
+    // Failure" reuses the pipe-leak shot for the "before" photo.
     private static final Map<String, String> PHOTO_BY_CATEGORY = Map.ofEntries(
             Map.entry("Pothole / Damaged Road Surface", "/seed-images/damaged_pavement.jpg"),
             Map.entry("Damaged Footpath or Pedestrian Bridge", "/seed-images/damaged_bridge.jpg"),
@@ -94,6 +93,21 @@ public class MockDataSeeder implements CommandLineRunner {
             Map.entry("Fallen Tree or Overgrown Vegetation", "/seed-images/street_trees_problem.jpg"),
             Map.entry("Street Light Outage", "/seed-images/streetlight_power_outages.jpg"),
             Map.entry("Power Outage or Exposed Cable", "/seed-images/unsafe_structured_building.jpg"));
+
+    // "After" photos for RESOLVED / CLOSED demo reports — the repaired / cleared
+    // state, so the before/after pair reads as a real resolution instead of the
+    // same shot twice. Only the categories that actually have a RESOLVED or
+    // CLOSED demo report need an entry; anything else falls back to the "before"
+    // photo via resolutionPhotoUrlFor().
+    private static final Map<String, String> RESOLUTION_PHOTO_BY_CATEGORY = Map.ofEntries(
+            Map.entry("Street Light Outage", "/seed-images/resolved_streetlight.jpg"),
+            Map.entry("Pothole / Damaged Road Surface", "/seed-images/resolved_road.jpg"),
+            Map.entry("Water Supply Failure", "/seed-images/resolved_water_supply.jpg"),
+            Map.entry("Uncollected Garbage", "/seed-images/resolved_garbage.jpg"),
+            Map.entry("Damaged Park or Playground Equipment", "/seed-images/resolved_playground.jpg"),
+            Map.entry("Unsafe or Damaged Public Building", "/seed-images/resolved_public_building.jpg"),
+            Map.entry("Power Outage or Exposed Cable", "/seed-images/resolved_power.jpg"),
+            Map.entry("Blocked Drain or Clogged Culvert", "/seed-images/resolved_drain.jpg"));
 
     public MockDataSeeder(RoleRepository roleRepository,
                            UserRepository userRepository,
@@ -131,6 +145,12 @@ public class MockDataSeeder implements CommandLineRunner {
     private String photoUrlFor(String categoryName) {
         String path = PHOTO_BY_CATEGORY.getOrDefault(categoryName, "/seed-images/damaged_building.jpg");
         return publicBaseUrl + path;
+    }
+
+    /** Absolute URL for a category's "after" photo; falls back to the "before" photo. */
+    private String resolutionPhotoUrlFor(String categoryName) {
+        String path = RESOLUTION_PHOTO_BY_CATEGORY.get(categoryName);
+        return path != null ? publicBaseUrl + path : photoUrlFor(categoryName);
     }
 
     @Override
@@ -365,7 +385,7 @@ public class MockDataSeeder implements CommandLineRunner {
             if (spec.status() == ReportStatus.RESOLVED || spec.status() == ReportStatus.CLOSED) {
                 ReportImage resolutionPhoto = new ReportImage();
                 resolutionPhoto.setReport(report);
-                resolutionPhoto.setImageUrl(photoUrlFor(spec.category()));
+                resolutionPhoto.setImageUrl(resolutionPhotoUrlFor(spec.category()));
                 resolutionPhoto.setImageType(ImageType.RESOLUTION_PHOTO);
                 resolutionPhoto.setUploadedBy(staff);
                 reportImageRepository.save(resolutionPhoto);

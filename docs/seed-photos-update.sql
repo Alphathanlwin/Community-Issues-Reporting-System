@@ -34,6 +34,28 @@ JOIN categories c   ON c.id = r.category_id
 JOIN cat_photo cp   ON cp.category = c.name
 WHERE ri.report_id = r.id;
 
+-- Resolution ("after") photos: repoint RESOLUTION_PHOTO rows at the repaired-
+-- state image where one exists (categories without one keep the "before" photo
+-- set just above).
+WITH cat_after(category, path) AS (
+    VALUES
+        ('Street Light Outage',                   '/seed-images/resolved_streetlight.jpg'),
+        ('Pothole / Damaged Road Surface',        '/seed-images/resolved_road.jpg'),
+        ('Water Supply Failure',                  '/seed-images/resolved_water_supply.jpg'),
+        ('Uncollected Garbage',                   '/seed-images/resolved_garbage.jpg'),
+        ('Damaged Park or Playground Equipment',  '/seed-images/resolved_playground.jpg'),
+        ('Unsafe or Damaged Public Building',     '/seed-images/resolved_public_building.jpg'),
+        ('Power Outage or Exposed Cable',         '/seed-images/resolved_power.jpg'),
+        ('Blocked Drain or Clogged Culvert',      '/seed-images/resolved_drain.jpg')
+)
+UPDATE report_images ri
+SET image_url = 'http://localhost:8080' || ca.path
+FROM reports r
+JOIN categories c  ON c.id = r.category_id
+JOIN cat_after ca  ON ca.category = c.name
+WHERE ri.report_id = r.id
+  AND ri.image_type = 'RESOLUTION_PHOTO';
+
 -- Sanity check before committing:
 SELECT c.name AS category, ri.image_type, ri.image_url, count(*)
 FROM report_images ri

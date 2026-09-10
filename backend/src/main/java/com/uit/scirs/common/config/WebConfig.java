@@ -22,5 +22,10 @@ public class WebConfig implements WebMvcConfigurer {
         Path storageRoot = Paths.get(localStoragePath).toAbsolutePath().normalize();
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations(storageRoot.toUri().toString());
+
+        // Bundled demo photos for the seeded reports (see MockDataSeeder).
+        // Served read-only from the jar; unrelated to user uploads above.
+        registry.addResourceHandler("/seed-images/**")
+                .addResourceLocations("classpath:/seed-images/");
     }
 }

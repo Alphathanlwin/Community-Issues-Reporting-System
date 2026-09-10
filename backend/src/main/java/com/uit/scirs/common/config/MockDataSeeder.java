@@ -73,6 +73,27 @@ public class MockDataSeeder implements CommandLineRunner {
     private final PointTransactionRepository pointTransactionRepository;
     private final PasswordEncoder passwordEncoder;
     private final boolean enabled;
+    private final String publicBaseUrl;
+
+    // Bundled demo photos, served from classpath:/seed-images/ via WebConfig at
+    // /seed-images/**. Keyed by category name (see DataSeeder). One "Water
+    // Supply Failure" reuses the pipe-leak shot; a resolution photo reuses the
+    // same image (the folder has no dedicated before/after pairs).
+    private static final Map<String, String> PHOTO_BY_CATEGORY = Map.ofEntries(
+            Map.entry("Pothole / Damaged Road Surface", "/seed-images/damaged_pavement.jpg"),
+            Map.entry("Damaged Footpath or Pedestrian Bridge", "/seed-images/damaged_bridge.jpg"),
+            Map.entry("Unsafe or Damaged Public Building", "/seed-images/damaged_building.jpg"),
+            Map.entry("Illegal or Unsafe Construction", "/seed-images/damaged_public_building.jpeg"),
+            Map.entry("Water Pipe Leak or Burst Main", "/seed-images/pipeleakes.jpeg"),
+            Map.entry("Water Supply Failure", "/seed-images/pipeleakes.jpeg"),
+            Map.entry("Blocked Drain or Clogged Culvert", "/seed-images/blocked_drain.jpg"),
+            Map.entry("Street Flooding", "/seed-images/street_flooding.jpg"),
+            Map.entry("Uncollected Garbage", "/seed-images/garbagecollection.jpeg"),
+            Map.entry("Illegal Dumping", "/seed-images/illegal_dumping.jpg"),
+            Map.entry("Damaged Park or Playground Equipment", "/seed-images/illegal_dumping_in_parks.jpeg"),
+            Map.entry("Fallen Tree or Overgrown Vegetation", "/seed-images/street_trees_problem.jpg"),
+            Map.entry("Street Light Outage", "/seed-images/streetlight_power_outages.jpg"),
+            Map.entry("Power Outage or Exposed Cable", "/seed-images/unsafe_structured_building.jpg"));
 
     public MockDataSeeder(RoleRepository roleRepository,
                            UserRepository userRepository,
@@ -86,7 +107,8 @@ public class MockDataSeeder implements CommandLineRunner {
                            NotificationRepository notificationRepository,
                            PointTransactionRepository pointTransactionRepository,
                            PasswordEncoder passwordEncoder,
-                           @org.springframework.beans.factory.annotation.Value("${app.mock-data.enabled:false}") boolean enabled) {
+                           @org.springframework.beans.factory.annotation.Value("${app.mock-data.enabled:false}") boolean enabled,
+                           @org.springframework.beans.factory.annotation.Value("${app.public-base-url:http://localhost:8080}") String publicBaseUrl) {
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
         this.departmentRepository = departmentRepository;
@@ -100,6 +122,15 @@ public class MockDataSeeder implements CommandLineRunner {
         this.pointTransactionRepository = pointTransactionRepository;
         this.passwordEncoder = passwordEncoder;
         this.enabled = enabled;
+        this.publicBaseUrl = publicBaseUrl.endsWith("/")
+                ? publicBaseUrl.substring(0, publicBaseUrl.length() - 1)
+                : publicBaseUrl;
+    }
+
+    /** Absolute URL for a category's demo photo (frontend renders it as a plain <img src>). */
+    private String photoUrlFor(String categoryName) {
+        String path = PHOTO_BY_CATEGORY.getOrDefault(categoryName, "/seed-images/damaged_building.jpg");
+        return publicBaseUrl + path;
     }
 
     @Override
@@ -315,7 +346,7 @@ public class MockDataSeeder implements CommandLineRunner {
         // Report photo — always present, uploaded by the citizen at creation.
         ReportImage photo = new ReportImage();
         photo.setReport(report);
-        photo.setImageUrl("https://picsum.photos/seed/scirs-" + sequence + "/800/600");
+        photo.setImageUrl(photoUrlFor(spec.category()));
         photo.setImageType(ImageType.REPORT_PHOTO);
         photo.setUploadedBy(reporter);
         reportImageRepository.save(photo);
@@ -334,7 +365,7 @@ public class MockDataSeeder implements CommandLineRunner {
             if (spec.status() == ReportStatus.RESOLVED || spec.status() == ReportStatus.CLOSED) {
                 ReportImage resolutionPhoto = new ReportImage();
                 resolutionPhoto.setReport(report);
-                resolutionPhoto.setImageUrl("https://picsum.photos/seed/scirs-" + sequence + "-fixed/800/600");
+                resolutionPhoto.setImageUrl(photoUrlFor(spec.category()));
                 resolutionPhoto.setImageType(ImageType.RESOLUTION_PHOTO);
                 resolutionPhoto.setUploadedBy(staff);
                 reportImageRepository.save(resolutionPhoto);

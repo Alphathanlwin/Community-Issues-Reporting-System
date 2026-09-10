@@ -46,6 +46,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
+                        .requestMatchers("/seed-images/**").permitAll()
                         // Live API docs (see common/config/OpenApiConfig.java) — read-only
                         // documentation, no data access; safe to expose unauthenticated the
                         // same way the Postman collection and api-standards.md already are.

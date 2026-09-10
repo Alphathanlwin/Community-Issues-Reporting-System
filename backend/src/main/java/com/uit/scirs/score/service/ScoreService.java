@@ -36,6 +36,8 @@ public class ScoreService {
         POINTS_BY_REASON.put(PointReason.FEEDBACK_GIVEN, 5);
         POINTS_BY_REASON.put(PointReason.REPORT_REJECTED, -5);
         POINTS_BY_REASON.put(PointReason.CONFIRMATION_GIVEN, 3);
+        POINTS_BY_REASON.put(PointReason.SUPPORT_GIVEN, 3);
+        POINTS_BY_REASON.put(PointReason.SUPPORT_REMOVED, -3);
     }
 
     private final PointTransactionRepository pointTransactionRepository;
@@ -74,6 +76,35 @@ public class ScoreService {
 
         user.setScorePoints(user.getScorePoints() + points);
         userRepository.save(user);
+    }
+
+    /**
+     * Records a point movement that is expected to recur for the same
+     * (user, report) &mdash; e.g. the reversible community-feed "Support"
+     * toggle, where a citizen may back and un-back a report repeatedly. Unlike
+     * {@link #award}, there is no (user, report, reason) de-dup: every call
+     * appends a ledger row and moves the cached total. The caller owns the
+     * "one active support per report" rule (the unique constraint on
+     * {@code report_supports}).
+     */
+    @Transactional
+    public void record(User user, PointReason reason, Report report) {
+        int points = POINTS_BY_REASON.get(reason);
+
+        PointTransaction transaction = new PointTransaction();
+        transaction.setUser(user);
+        transaction.setReport(report);
+        transaction.setPoints(points);
+        transaction.setReason(reason);
+        pointTransactionRepository.save(transaction);
+
+        user.setScorePoints(user.getScorePoints() + points);
+        userRepository.save(user);
+    }
+
+    /** The point value the reason&rarr;points table assigns to {@code reason}. */
+    public int pointsFor(PointReason reason) {
+        return POINTS_BY_REASON.get(reason);
     }
 
     // Not user-scoped — every caller with leaderboard access sees the same

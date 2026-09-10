@@ -19,15 +19,18 @@ import com.uit.scirs.report.dto.ReportDTO;
 import com.uit.scirs.report.dto.ReportMapDTO;
 import com.uit.scirs.report.dto.ReportStatusHistoryDTO;
 import com.uit.scirs.report.dto.ReportSubmissionResultDTO;
+import com.uit.scirs.report.dto.ReportSupportResultDTO;
 import com.uit.scirs.report.entity.ImageType;
 import com.uit.scirs.report.entity.Report;
 import com.uit.scirs.report.entity.ReportConfirmation;
 import com.uit.scirs.report.entity.ReportImage;
 import com.uit.scirs.report.entity.ReportStatus;
+import com.uit.scirs.report.entity.ReportSupport;
 import com.uit.scirs.report.mapper.ReportMapper;
 import com.uit.scirs.report.repository.ReportConfirmationRepository;
 import com.uit.scirs.report.repository.ReportRepository;
 import com.uit.scirs.report.repository.ReportStatusHistoryRepository;
+import com.uit.scirs.report.repository.ReportSupportRepository;
 import com.uit.scirs.score.entity.PointReason;
 import com.uit.scirs.score.service.ScoreService;
 import com.uit.scirs.user.entity.AccountStatus;
@@ -35,6 +38,7 @@ import com.uit.scirs.user.entity.RoleName;
 import com.uit.scirs.user.entity.User;
 import com.uit.scirs.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -60,10 +64,13 @@ public class ReportService {
     // in flight, never PENDING_APPROVAL / REJECTED / RESOLVED / CLOSED.
     private static final List<ReportStatus> PUBLIC_FEED_STATUSES =
             List.of(ReportStatus.ASSIGNED, ReportStatus.IN_PROGRESS);
+    /** Max reports one citizen can back from the community feed per rolling 24h. */
+    private static final int SUPPORT_DAILY_LIMIT = 5;
 
     private final ReportRepository reportRepository;
     private final ReportStatusHistoryRepository reportStatusHistoryRepository;
     private final ReportConfirmationRepository reportConfirmationRepository;
+    private final ReportSupportRepository reportSupportRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final ReportMapper reportMapper;
@@ -77,6 +84,7 @@ public class ReportService {
     public ReportService(ReportRepository reportRepository,
                           ReportStatusHistoryRepository reportStatusHistoryRepository,
                           ReportConfirmationRepository reportConfirmationRepository,
+                          ReportSupportRepository reportSupportRepository,
                           CategoryRepository categoryRepository,
                           UserRepository userRepository,
                           ReportMapper reportMapper,
@@ -89,6 +97,7 @@ public class ReportService {
         this.reportRepository = reportRepository;
         this.reportStatusHistoryRepository = reportStatusHistoryRepository;
         this.reportConfirmationRepository = reportConfirmationRepository;
+        this.reportSupportRepository = reportSupportRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
         this.reportMapper = reportMapper;
@@ -304,6 +313,81 @@ public class ReportService {
         return PageResponse.from(
                 reportRepository.findByStatusInOrderByCreatedAtDesc(PUBLIC_FEED_STATUSES, pageable)
                         .map(reportMapper::toPublicDTO));
+    }
+
+    /**
+     * A citizen backing ("support" / "+1") a report from the community feed.
+     * One support per (citizen, report) &mdash; enforced by the unique
+     * constraint on {@link ReportSupport} and pre-checked here &mdash; and at
+     * most {@link #SUPPORT_DAILY_LIMIT} per rolling 24 hours. Each support
+     * awards the supporter {@code SUPPORT_GIVEN} points; the leaderboard cache
+     * is evicted so the new total is visible immediately. Reversible with
+     * {@link #removeSupport}.
+     */
+    @Transactional
+    @CacheEvict(value = CacheConfig.LEADERBOARD, allEntries = true)
+    public ReportSupportResultDTO supportReport(Long reportId, Long citizenId) {
+        Report report = findEntity(reportId);
+        User citizen = userRepository.findById(citizenId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (reportSupportRepository.existsByReportIdAndCitizenId(reportId, citizenId)) {
+            throw new DuplicateResourceException("You have already supported this report.");
+        }
+
+        LocalDateTime since = LocalDateTime.now().minusHours(24);
+        long todayCount = reportSupportRepository.countByCitizenIdAndCreatedAtAfter(citizenId, since);
+        if (todayCount >= SUPPORT_DAILY_LIMIT) {
+            throw new BusinessRuleException(
+                    "Daily limit reached: you can support up to " + SUPPORT_DAILY_LIMIT + " reports per day.");
+        }
+
+        ReportSupport support = new ReportSupport();
+        support.setReport(report);
+        support.setCitizen(citizen);
+        reportSupportRepository.save(support);
+
+        scoreService.record(citizen, PointReason.SUPPORT_GIVEN, report);
+
+        int awarded = scoreService.pointsFor(PointReason.SUPPORT_GIVEN);
+        int remainingToday = (int) Math.max(0, SUPPORT_DAILY_LIMIT - (todayCount + 1));
+        return new ReportSupportResultDTO(
+                reportSupportRepository.countByReportId(reportId),
+                awarded,
+                citizen.getScorePoints(),
+                remainingToday);
+    }
+
+    /**
+     * The reverse of {@link #supportReport}: a citizen withdrawing their
+     * support. Deletes the {@link ReportSupport} row and posts a compensating
+     * {@code SUPPORT_REMOVED} ledger entry (&minus;3), so the immutable
+     * point-transaction ledger still reconstructs the leaderboard exactly.
+     * The report frees up a daily-quota slot and can be supported again later.
+     * 400 if the citizen has not currently supported this report.
+     */
+    @Transactional
+    @CacheEvict(value = CacheConfig.LEADERBOARD, allEntries = true)
+    public ReportSupportResultDTO removeSupport(Long reportId, Long citizenId) {
+        Report report = findEntity(reportId);
+        User citizen = userRepository.findById(citizenId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        long deleted = reportSupportRepository.deleteByReportIdAndCitizenId(reportId, citizenId);
+        if (deleted == 0) {
+            throw new BusinessRuleException("You have not supported this report.");
+        }
+
+        scoreService.record(citizen, PointReason.SUPPORT_REMOVED, report);
+
+        LocalDateTime since = LocalDateTime.now().minusHours(24);
+        long todayCount = reportSupportRepository.countByCitizenIdAndCreatedAtAfter(citizenId, since);
+        int remainingToday = (int) Math.max(0, SUPPORT_DAILY_LIMIT - todayCount);
+        return new ReportSupportResultDTO(
+                reportSupportRepository.countByReportId(reportId),
+                scoreService.pointsFor(PointReason.SUPPORT_REMOVED),
+                citizen.getScorePoints(),
+                remainingToday);
     }
 
     @Transactional

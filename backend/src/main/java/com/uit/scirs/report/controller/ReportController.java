@@ -12,6 +12,7 @@ import com.uit.scirs.report.dto.ReportDTO;
 import com.uit.scirs.report.dto.ReportMapDTO;
 import com.uit.scirs.report.dto.ReportSubmissionResultDTO;
 import com.uit.scirs.report.dto.ReportStatusHistoryDTO;
+import com.uit.scirs.report.dto.ReportSupportResultDTO;
 import com.uit.scirs.report.dto.UpdateReportPriorityDTO;
 import com.uit.scirs.report.dto.UpdateReportStatusDTO;
 import com.uit.scirs.report.entity.ReportStatus;
@@ -32,6 +33,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -222,5 +224,26 @@ public class ReportController {
                 Math.min(Math.max(size, 1), 50),
                 Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(reportService.getPublicFeed(pageable));
+    }
+
+    // A citizen backing ("support" / "+1") a report from the community feed.
+    // One per (citizen, report); at most five per rolling 24h; awards the
+    // supporter SUPPORT_GIVEN points. 409 if already supported, 400 if the
+    // daily limit is reached.
+    @PostMapping("/{id}/support")
+    @PreAuthorize("hasRole('CITIZEN')")
+    public ResponseEntity<ReportSupportResultDTO> supportReport(@PathVariable Long id,
+                                                                @AuthenticationPrincipal CurrentUser currentUser) {
+        return ResponseEntity.ok(reportService.supportReport(id, currentUser.getId()));
+    }
+
+    // The reverse toggle: withdraw a support. Removes the row and posts a
+    // compensating SUPPORT_REMOVED (-3) ledger entry. 400 if the citizen is
+    // not currently supporting this report.
+    @DeleteMapping("/{id}/support")
+    @PreAuthorize("hasRole('CITIZEN')")
+    public ResponseEntity<ReportSupportResultDTO> removeSupport(@PathVariable Long id,
+                                                                @AuthenticationPrincipal CurrentUser currentUser) {
+        return ResponseEntity.ok(reportService.removeSupport(id, currentUser.getId()));
     }
 }

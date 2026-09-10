@@ -9,7 +9,9 @@ import com.uit.scirs.department.entity.Department;
 import com.uit.scirs.department.repository.DepartmentRepository;
 import com.uit.scirs.report.entity.Report;
 import com.uit.scirs.report.entity.ReportStatus;
+import com.uit.scirs.report.entity.ReportSupport;
 import com.uit.scirs.report.repository.ReportRepository;
+import com.uit.scirs.report.repository.ReportSupportRepository;
 import com.uit.scirs.user.entity.AccountStatus;
 import com.uit.scirs.user.entity.Role;
 import com.uit.scirs.user.entity.RoleName;
@@ -29,6 +31,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -48,6 +51,7 @@ class ReportControllerIntegrationTest {
     @Autowired CategoryRepository categoryRepository;
     @Autowired DepartmentRepository departmentRepository;
     @Autowired ReportRepository reportRepository;
+    @Autowired ReportSupportRepository reportSupportRepository;
 
     @Test
     void createReport_withApprovedCitizenAndValidData_returns201WithPendingApprovalStatus() throws Exception {
@@ -557,6 +561,134 @@ class ReportControllerIntegrationTest {
     private String adminToken() {
         User admin = userRepository.findByEmail("admin@scirs.gov").orElseThrow();
         return jwtUtil.generateToken(admin.getId(), admin.getEmail(), RoleName.ADMIN.name(), null);
+    }
+
+    @Test
+    void supportReport_asCitizen_recordsSupportAndRaisesLeaderboardScore() throws Exception {
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
+        User reporter = persistApprovedCitizen("support-reporter@example.com");
+        Report report = persistReport(reporter, pothole, null, ReportStatus.IN_PROGRESS, "63.0000000", "63.0000000");
+
+        User supporter = persistApprovedCitizen("support-giver@example.com");
+        String token = jwtUtil.generateToken(supporter.getId(), supporter.getEmail(), RoleName.CITIZEN.name(), null);
+
+        mockMvc.perform(get("/api/score/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalPoints").value(0));
+
+        mockMvc.perform(post("/api/reports/" + report.getId() + "/support")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.awardedPoints").value(3))
+                .andExpect(jsonPath("$.totalPoints").value(3))
+                .andExpect(jsonPath("$.supportCount").value(1))
+                .andExpect(jsonPath("$.remainingToday").value(4));
+
+        mockMvc.perform(get("/api/score/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalPoints").value(3));
+    }
+
+    @Test
+    void supportReport_twiceBySameCitizen_returns409() throws Exception {
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
+        User reporter = persistApprovedCitizen("support-dup-reporter@example.com");
+        Report report = persistReport(reporter, pothole, null, ReportStatus.IN_PROGRESS, "64.0000000", "64.0000000");
+
+        User supporter = persistApprovedCitizen("support-dup-giver@example.com");
+        String token = jwtUtil.generateToken(supporter.getId(), supporter.getEmail(), RoleName.CITIZEN.name(), null);
+
+        mockMvc.perform(post("/api/reports/" + report.getId() + "/support")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/reports/" + report.getId() + "/support")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void supportReport_pastFivePerDay_returns400() throws Exception {
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
+        User reporter = persistApprovedCitizen("support-cap-reporter@example.com");
+        User supporter = persistApprovedCitizen("support-cap-giver@example.com");
+
+        for (int i = 0; i < 5; i++) {
+            Report seeded = persistReport(reporter, pothole, null, ReportStatus.IN_PROGRESS,
+                    "65.000000" + i, "65.000000" + i);
+            ReportSupport support = new ReportSupport();
+            support.setReport(seeded);
+            support.setCitizen(supporter);
+            reportSupportRepository.save(support);
+        }
+
+        Report sixth = persistReport(reporter, pothole, null, ReportStatus.IN_PROGRESS, "66.0000000", "66.0000000");
+        String token = jwtUtil.generateToken(supporter.getId(), supporter.getEmail(), RoleName.CITIZEN.name(), null);
+
+        mockMvc.perform(post("/api/reports/" + sixth.getId() + "/support")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void removeSupport_afterSupporting_reversesTheThreePoints() throws Exception {
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
+        User reporter = persistApprovedCitizen("unsupport-reporter@example.com");
+        Report report = persistReport(reporter, pothole, null, ReportStatus.IN_PROGRESS, "67.0000000", "67.0000000");
+
+        User supporter = persistApprovedCitizen("unsupport-giver@example.com");
+        String token = jwtUtil.generateToken(supporter.getId(), supporter.getEmail(), RoleName.CITIZEN.name(), null);
+
+        mockMvc.perform(post("/api/reports/" + report.getId() + "/support")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalPoints").value(3));
+
+        mockMvc.perform(delete("/api/reports/" + report.getId() + "/support")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.awardedPoints").value(-3))
+                .andExpect(jsonPath("$.totalPoints").value(0))
+                .andExpect(jsonPath("$.supportCount").value(0));
+
+        mockMvc.perform(get("/api/score/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalPoints").value(0));
+    }
+
+    @Test
+    void removeSupport_withoutPriorSupport_returns400() throws Exception {
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
+        User reporter = persistApprovedCitizen("unsupport-none-reporter@example.com");
+        Report report = persistReport(reporter, pothole, null, ReportStatus.IN_PROGRESS, "68.0000000", "68.0000000");
+
+        User supporter = persistApprovedCitizen("unsupport-none-giver@example.com");
+        String token = jwtUtil.generateToken(supporter.getId(), supporter.getEmail(), RoleName.CITIZEN.name(), null);
+
+        mockMvc.perform(delete("/api/reports/" + report.getId() + "/support")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void supportReport_afterRemoving_canSupportAgain() throws Exception {
+        Category pothole = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
+        User reporter = persistApprovedCitizen("resupport-reporter@example.com");
+        Report report = persistReport(reporter, pothole, null, ReportStatus.IN_PROGRESS, "69.0000000", "69.0000000");
+
+        User supporter = persistApprovedCitizen("resupport-giver@example.com");
+        String token = jwtUtil.generateToken(supporter.getId(), supporter.getEmail(), RoleName.CITIZEN.name(), null);
+        String url = "/api/reports/" + report.getId() + "/support";
+
+        mockMvc.perform(post(url).header(HttpHeaders.AUTHORIZATION, "Bearer " + token)).andExpect(status().isOk());
+        mockMvc.perform(delete(url).header(HttpHeaders.AUTHORIZATION, "Bearer " + token)).andExpect(status().isOk());
+        mockMvc.perform(post(url).header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalPoints").value(3));
+
+        mockMvc.perform(get("/api/score/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalPoints").value(3));
     }
 
     private Report persistReport(User reporter, Category category, Department department, ReportStatus status) {

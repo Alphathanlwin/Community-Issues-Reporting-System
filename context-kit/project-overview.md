@@ -134,6 +134,8 @@ Points are awarded automatically through `PointTransaction` rows so the leaderbo
 | Feedback submitted after resolution | +5 | `FEEDBACK_GIVEN` |
 | Report denied as invalid/spam | −5 | `REPORT_REJECTED` |
 | Citizen confirms an existing report is the same issue ("me too") | +3 | `CONFIRMATION_GIVEN` |
+| Citizen backs ("supports") another report from the community feed (max 5 / rolling 24h, one per report) | +3 | `SUPPORT_GIVEN` |
+| Citizen withdraws a support they previously gave (reverses the award) | −3 | `SUPPORT_REMOVED` |
 
 Leaderboard = sum of point transactions per citizen, ranked descending, ties broken by earliest join date. A citizen's total is cached on `users.score_points` and recalculated on every point transaction.
 

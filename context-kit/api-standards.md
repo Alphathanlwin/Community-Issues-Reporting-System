@@ -190,6 +190,19 @@ Always creates the account with `role = STAFF` and `accountStatus = APPROVED` im
 | `/api/reports/map` | GET | all | Map pins (see below) |
 | `/api/reports/map/public` | GET | all | Cached, unfiltered citizen-visible map pins |
 | `/api/reports/public` | GET | all | Citizen public feed — active reports, newest first, paged (see below) |
+| `/api/reports/{id}/support` | POST / DELETE | CITIZEN | Back / un-back a feed report — see below |
+
+### Support a report (community feed "+1")
+
+`POST /api/reports/{id}/support` — CITIZEN. Records a `report_supports` row and awards the supporter **+3 points** (`SUPPORT_GIVEN`). One support per `(report_id, citizen_id)` (unique constraint) — a repeat is `409 Conflict`. Capped at **5 supports per rolling 24h**; the 6th is `400 Bad Request`. Response body:
+
+```json
+{ "supportCount": 12, "awardedPoints": 3, "totalPoints": 48, "remainingToday": 3 }
+```
+
+`DELETE /api/reports/{id}/support` — CITIZEN. The reverse toggle: deletes the `report_supports` row and posts a compensating **−3** ledger entry (`SUPPORT_REMOVED`), so the immutable `point_transactions` ledger still reconstructs the leaderboard exactly (per Decision D6). Frees a daily-quota slot; the report can be supported again afterwards. `400 Bad Request` if the citizen is not currently supporting the report. Same response shape (`awardedPoints` is `-3`).
+
+The leaderboard cache is evicted on success of either verb, so `GET /api/leaderboard` and `GET /api/score/me` reflect the new total immediately.
 
 ### Submit a report — duplicate check
 

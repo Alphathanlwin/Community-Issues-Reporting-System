@@ -69,6 +69,11 @@ class DashboardControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.pendingAccountCount").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)))
                 .andExpect(jsonPath("$.pendingReportCount").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.totalCitizenCount").value(org.hamcrest.Matchers.greaterThanOrEqualTo(2)))
+                .andExpect(jsonPath("$.totalReportCount").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.recentRegistrations").isArray())
+                .andExpect(jsonPath("$.recentRegistrations[*].accountStatus",
+                        org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is("PENDING"))))
                 .andExpect(jsonPath("$.reportsAwaitingApproval").isArray());
     }
 

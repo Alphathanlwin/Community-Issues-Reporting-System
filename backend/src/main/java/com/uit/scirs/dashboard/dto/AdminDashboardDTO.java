@@ -9,6 +9,8 @@ public class AdminDashboardDTO {
 
     private long pendingAccountCount;
     private long pendingReportCount;
+    private long totalCitizenCount;
+    private long totalReportCount;
     private List<UserDTO> recentRegistrations;
     private List<ReportDTO> reportsAwaitingApproval;
 
@@ -26,6 +28,22 @@ public class AdminDashboardDTO {
 
     public void setPendingReportCount(long pendingReportCount) {
         this.pendingReportCount = pendingReportCount;
+    }
+
+    public long getTotalCitizenCount() {
+        return totalCitizenCount;
+    }
+
+    public void setTotalCitizenCount(long totalCitizenCount) {
+        this.totalCitizenCount = totalCitizenCount;
+    }
+
+    public long getTotalReportCount() {
+        return totalReportCount;
+    }
+
+    public void setTotalReportCount(long totalReportCount) {
+        this.totalReportCount = totalReportCount;
     }
 
     public List<UserDTO> getRecentRegistrations() {

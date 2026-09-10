@@ -340,7 +340,7 @@ When `anonymous` is true, `reporterName` and `reporterAvatarUrl` are `null` — 
 
 | Endpoint | Method | Role | Returns |
 |----------|--------|------|---------|
-| `/api/dashboard/admin` | GET | ADMIN | Pending account count, pending report count, 10 latest registrations, latest reports awaiting approval |
+| `/api/dashboard/admin` | GET | ADMIN | Pending account count, pending report count, total citizen count, total report count, up to 10 citizens still awaiting approval, latest reports awaiting approval |
 | `/api/dashboard/staff` | GET | ADMIN, STAFF | Total / resolved / remaining / new report counts, monthly series, 10 most recent reports |
 | `/api/dashboard/departments` | GET | ADMIN, STAFF | Workload and performance per department (open count, resolved count, average resolution hours, average rating) |
 | `/api/dashboard/categories` | GET | ADMIN, STAFF | Issue volume by category |
@@ -357,10 +357,17 @@ When `anonymous` is true, `reporterName` and `reporterAvatarUrl` are `null` — 
 {
   "pendingAccountCount": 4,
   "pendingReportCount": 6,
-  "recentRegistrations": [ /* UserDTO, newest first, top 10 citizens */ ],
+  "totalCitizenCount": 137,
+  "totalReportCount": 542,
+  "recentRegistrations": [ /* UserDTO, newest first — CITIZEN accounts still in PENDING, up to 10 */ ],
   "reportsAwaitingApproval": [ /* ReportDTO, newest first, top 10 */ ]
 }
 ```
+
+`recentRegistrations` is scoped to `PENDING` citizens (not every recent signup): the dashboard
+panel renders inline approve/deny, and those endpoints reject a non-`PENDING` target. The full
+account list lives at `/api/users`. `totalCitizenCount` counts every `CITIZEN`-role account;
+`totalReportCount` counts every report regardless of status.
 
 ### `GET /api/dashboard/staff?departmentId=2`
 

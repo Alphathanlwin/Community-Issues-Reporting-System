@@ -78,8 +78,14 @@ public class DashboardService {
         AdminDashboardDTO dto = new AdminDashboardDTO();
         dto.setPendingAccountCount(userRepository.countByAccountStatus(AccountStatus.PENDING));
         dto.setPendingReportCount(reportRepository.countByStatus(ReportStatus.PENDING_APPROVAL));
-        dto.setRecentRegistrations(
-                userMapper.toDTOList(userRepository.findTop10ByRoleNameOrderByCreatedAtDesc(RoleName.CITIZEN)));
+        dto.setTotalCitizenCount(userRepository.countByRoleName(RoleName.CITIZEN));
+        dto.setTotalReportCount(reportRepository.count());
+        // Only accounts still awaiting a decision — the panel renders inline
+        // approve/deny, which the approve/reject endpoints reject for any
+        // non-PENDING account.
+        dto.setRecentRegistrations(userMapper.toDTOList(
+                userRepository.findTop10ByRoleNameAndAccountStatusOrderByCreatedAtDesc(
+                        RoleName.CITIZEN, AccountStatus.PENDING)));
         dto.setReportsAwaitingApproval(
                 reportMapper.toDTOList(reportRepository.findTop10ByStatusOrderByCreatedAtDesc(ReportStatus.PENDING_APPROVAL)));
         return dto;

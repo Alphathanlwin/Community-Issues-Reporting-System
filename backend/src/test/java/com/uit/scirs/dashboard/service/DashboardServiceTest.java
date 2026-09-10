@@ -59,8 +59,11 @@ class DashboardServiceTest {
     void getAdminDashboard_assemblesCountsAndRecentLists() {
         when(userRepository.countByAccountStatus(AccountStatus.PENDING)).thenReturn(4L);
         when(reportRepository.countByStatus(ReportStatus.PENDING_APPROVAL)).thenReturn(6L);
+        when(userRepository.countByRoleName(RoleName.CITIZEN)).thenReturn(42L);
+        when(reportRepository.count()).thenReturn(137L);
         User citizen = new User();
-        when(userRepository.findTop10ByRoleNameOrderByCreatedAtDesc(RoleName.CITIZEN)).thenReturn(List.of(citizen));
+        when(userRepository.findTop10ByRoleNameAndAccountStatusOrderByCreatedAtDesc(
+                RoleName.CITIZEN, AccountStatus.PENDING)).thenReturn(List.of(citizen));
         when(userMapper.toDTOList(List.of(citizen))).thenReturn(List.of(new com.uit.scirs.auth.dto.UserDTO()));
         Report pendingReport = new Report();
         when(reportRepository.findTop10ByStatusOrderByCreatedAtDesc(ReportStatus.PENDING_APPROVAL))
@@ -71,6 +74,8 @@ class DashboardServiceTest {
 
         assertThat(dto.getPendingAccountCount()).isEqualTo(4L);
         assertThat(dto.getPendingReportCount()).isEqualTo(6L);
+        assertThat(dto.getTotalCitizenCount()).isEqualTo(42L);
+        assertThat(dto.getTotalReportCount()).isEqualTo(137L);
         assertThat(dto.getRecentRegistrations()).hasSize(1);
         assertThat(dto.getReportsAwaitingApproval()).hasSize(1);
     }

@@ -31,7 +31,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findTop10ByRoleNameOrderByCreatedAtDesc(RoleName roleName);
 
+    List<User> findTop10ByRoleNameAndAccountStatusOrderByCreatedAtDesc(RoleName roleName, AccountStatus accountStatus);
+
     long countByAccountStatus(AccountStatus accountStatus);
+
+    long countByRoleName(RoleName roleName);
 
     // Leaderboard ranking: highest score first, ties broken by earliest join date.
     List<User> findByRoleNameOrderByScorePointsDescCreatedAtAsc(RoleName roleName, Pageable pageable);

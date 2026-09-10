@@ -1,0 +1,50 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "backend: run",
+      "detail": "Start the backend on :8080. Recompiles changed classes first. Ctrl+C in the terminal to stop.",
+      "type": "shell",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "command": "./mvnw",
+      "args": ["spring-boot:run"],
+      "windows": { "command": ".\\mvnw.cmd", "args": ["spring-boot:run"] },
+      "isBackground": true,
+      "problemMatcher": [],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "backend: rebuild & run",
+      "detail": "Delete target/, then start the backend from a full recompile.",
+      "type": "shell",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "command": "rm -rf target && ./mvnw spring-boot:run",
+      "windows": { "command": "if exist target rmdir /s /q target & .\\mvnw.cmd spring-boot:run" },
+      "isBackground": true,
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "backend: compile",
+      "detail": "Compile only — quick check that the code builds.",
+      "type": "shell",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "command": "./mvnw",
+      "args": ["compile"],
+      "windows": { "command": ".\\mvnw.cmd", "args": ["compile"] },
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "backend: test",
+      "detail": "Run the backend test suite.",
+      "type": "shell",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "command": "./mvnw",
+      "args": ["test", "-DargLine=-Dnet.bytebuddy.experimental=true"],
+      "windows": { "command": ".\\mvnw.cmd", "args": ["test", "-DargLine=-Dnet.bytebuddy.experimental=true"] },
+      "problemMatcher": [],
+      "group": "test"
+    }
+  ]
+}

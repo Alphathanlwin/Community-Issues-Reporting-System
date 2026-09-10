@@ -1,0 +1,6 @@
+# Keep the POSIX Maven wrapper LF so /bin/sh can run it; keep the .cmd CRLF.
+mvnw        text eol=lf
+*.sh        text eol=lf
+mvnw.cmd    text eol=crlf
+*.cmd       text eol=crlf
+*.bat       text eol=crlf

@@ -1,5 +1,6 @@
 package com.uit.scirs.department.service;
 
+import com.uit.scirs.audit.service.AuditService;
 import com.uit.scirs.common.exception.DuplicateResourceException;
 import com.uit.scirs.common.exception.ResourceNotFoundException;
 import com.uit.scirs.department.dto.CreateDepartmentDTO;
@@ -29,6 +30,7 @@ class DepartmentServiceTest {
 
     @Mock DepartmentRepository departmentRepository;
     @Mock DepartmentMapper departmentMapper;
+    @Mock AuditService auditService;
     @InjectMocks DepartmentService departmentService;
 
     @Test

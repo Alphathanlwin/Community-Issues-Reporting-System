@@ -1,5 +1,7 @@
 package com.uit.scirs.user.service;
 
+import com.uit.scirs.audit.entity.AuditAction;
+import com.uit.scirs.audit.service.AuditService;
 import com.uit.scirs.auth.dto.UserDTO;
 import com.uit.scirs.common.exception.BusinessRuleException;
 import com.uit.scirs.common.exception.DuplicateResourceException;
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class UserService {
@@ -33,19 +36,22 @@ public class UserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final NotificationService notificationService;
+    private final AuditService auditService;
 
     public UserService(UserRepository userRepository,
                         RoleRepository roleRepository,
                         DepartmentRepository departmentRepository,
                         UserMapper userMapper,
                         PasswordEncoder passwordEncoder,
-                        NotificationService notificationService) {
+                        NotificationService notificationService,
+                        AuditService auditService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.departmentRepository = departmentRepository;
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
         this.notificationService = notificationService;
+        this.auditService = auditService;
     }
 
     @Transactional(readOnly = true)
@@ -109,6 +115,9 @@ public class UserService {
 
         User saved = userRepository.save(staff);
         notificationService.notifyAccountApproved(saved);
+        auditService.record(AuditAction.STAFF_CREATED, "USER", saved.getId(),
+                saved.getFullName() + " (staff)",
+                "Staff account created · " + department.getName() + " · " + saved.getEmail());
         return userMapper.toDTO(saved);
     }
 
@@ -121,6 +130,8 @@ public class UserService {
         user.setAccountStatus(AccountStatus.APPROVED);
         User saved = userRepository.save(user);
         notificationService.notifyAccountApproved(saved);
+        auditService.record(AuditAction.USER_APPROVED, "USER", saved.getId(),
+                accountLabel(saved), "PENDING → APPROVED");
         return userMapper.toDTO(saved);
     }
 
@@ -133,6 +144,10 @@ public class UserService {
         user.setAccountStatus(AccountStatus.REJECTED);
         User saved = userRepository.save(user);
         notificationService.notifyAccountRejected(saved, reason);
+        auditService.record(AuditAction.USER_REJECTED, "USER", saved.getId(), accountLabel(saved),
+                reason != null && !reason.isBlank()
+                        ? "PENDING → REJECTED · Reason: " + reason
+                        : "PENDING → REJECTED");
         return userMapper.toDTO(saved);
     }
 
@@ -143,7 +158,18 @@ public class UserService {
             throw new BusinessRuleException("Only approved accounts can be suspended");
         }
         user.setAccountStatus(AccountStatus.SUSPENDED);
-        return userMapper.toDTO(userRepository.save(user));
+        User saved = userRepository.save(user);
+        auditService.record(AuditAction.USER_SUSPENDED, "USER", saved.getId(), accountLabel(saved),
+                "APPROVED → SUSPENDED");
+        return userMapper.toDTO(saved);
+    }
+
+    /** "Full Name (citizen)" / "(staff)" / "(admin)" — the target snapshot used in the audit trail. */
+    private String accountLabel(User user) {
+        String role = user.getRole() != null && user.getRole().getName() != null
+                ? user.getRole().getName().name().toLowerCase(Locale.ROOT)
+                : "user";
+        return user.getFullName() + " (" + role + ")";
     }
 
     @Transactional

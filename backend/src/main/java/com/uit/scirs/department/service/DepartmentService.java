@@ -1,5 +1,7 @@
 package com.uit.scirs.department.service;
 
+import com.uit.scirs.audit.entity.AuditAction;
+import com.uit.scirs.audit.service.AuditService;
 import com.uit.scirs.common.config.CacheConfig;
 import com.uit.scirs.common.exception.DuplicateResourceException;
 import com.uit.scirs.common.exception.ResourceNotFoundException;
@@ -21,10 +23,14 @@ public class DepartmentService {
 
     private final DepartmentRepository departmentRepository;
     private final DepartmentMapper departmentMapper;
+    private final AuditService auditService;
 
-    public DepartmentService(DepartmentRepository departmentRepository, DepartmentMapper departmentMapper) {
+    public DepartmentService(DepartmentRepository departmentRepository,
+                             DepartmentMapper departmentMapper,
+                             AuditService auditService) {
         this.departmentRepository = departmentRepository;
         this.departmentMapper = departmentMapper;
+        this.auditService = auditService;
     }
 
     @Cacheable(CacheConfig.DEPARTMENTS)
@@ -44,6 +50,8 @@ public class DepartmentService {
         }
 
         Department saved = departmentRepository.save(departmentMapper.toEntity(dto));
+        auditService.record(AuditAction.DEPARTMENT_CREATED, "DEPARTMENT", saved.getId(),
+                saved.getName(), "Department created");
         return departmentMapper.toDTO(saved);
     }
 
@@ -62,7 +70,10 @@ public class DepartmentService {
         department.setDescription(dto.getDescription());
         department.setContactEmail(dto.getContactEmail());
 
-        return departmentMapper.toDTO(departmentRepository.save(department));
+        Department saved = departmentRepository.save(department);
+        auditService.record(AuditAction.DEPARTMENT_UPDATED, "DEPARTMENT", saved.getId(),
+                saved.getName(), "Department details updated");
+        return departmentMapper.toDTO(saved);
     }
 
     @CacheEvict(value = CacheConfig.DEPARTMENTS, allEntries = true)
@@ -71,6 +82,8 @@ public class DepartmentService {
         Department department = findEntity(id);
         department.setActive(false);
         departmentRepository.save(department);
+        auditService.record(AuditAction.DEPARTMENT_DEACTIVATED, "DEPARTMENT", department.getId(),
+                department.getName(), "Department deactivated");
     }
 
     private Department findEntity(Long id) {

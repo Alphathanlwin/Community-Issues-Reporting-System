@@ -42,6 +42,7 @@
 | Leaderboard | `/api/leaderboard` | Ranked citizens |
 | Score | `/api/score` | Own point total and history |
 | Dashboard | `/api/dashboard` | Read-only aggregates for admin and staff |
+| Audit Logs | `/api/audit-logs` | Read-only, admin-only trail of admin/staff operations |
 
 ---
 
@@ -415,6 +416,56 @@ One row per category, including categories with zero reports.
 
 ---
 
+## Audit Endpoints
+
+Read-only. **ADMIN only** — the trail records who did what across every
+console, so it is never exposed to staff or citizens. Rows are written
+server-side by `AuditService.record()` from the services that mutate state
+(`UserService`, `DepartmentService`, `CategoryService`, `ReportWorkflowService`,
+`ReportAssignmentService`). There is no write endpoint.
+
+### `GET /api/audit-logs`
+
+Newest-first, paged (the standard `PageResponse` envelope). All filters optional:
+
+| Param | Type | Notes |
+|-------|------|-------|
+| `action` | `AuditAction` | one operation kind (see enum in `database-schema.md` § 13) |
+| `actorId` | long | one operator |
+| `search` | string | case-insensitive match on actor name/email, target label, or details |
+| `startDate` / `endDate` | `yyyy-MM-dd` | bound `createdAt` inclusively |
+| `page` / `size` | int | `size` capped at 100, default 20 |
+
+```json
+{
+  "content": [
+    {
+      "id": 412,
+      "timestamp": "2026-09-10T04:12:07",
+      "actorId": 1,
+      "actorName": "System Administrator",
+      "actorEmail": "admin@scirs.gov",
+      "action": "USER_APPROVED",
+      "targetType": "USER",
+      "targetId": 42,
+      "targetLabel": "Hnin Ei Phyu (citizen)",
+      "details": "PENDING → APPROVED"
+    }
+  ],
+  "page": 0, "size": 20, "totalElements": 1, "totalPages": 1
+}
+```
+
+### `GET /api/audit-logs/actors`
+
+Distinct actors that appear in the log — powers the console's "actor" filter.
+
+```json
+[ { "id": 1, "name": "System Administrator" }, { "id": 8, "name": "Ko Myat Thu" } ]
+```
+
+---
+
 ## Request Validation
 
 Validation runs before business logic via Jakarta annotations on request DTOs.
@@ -509,6 +560,7 @@ Validation runs before business logic via Jakarta annotations on request DTOs.
 | Feedback | Read | Read | Own resolved reports |
 | Admin dashboard | ✅ | ❌ | ❌ |
 | Staff dashboard | ✅ | ✅ | ❌ |
+| Audit logs | ✅ | ❌ | ❌ |
 
 "Own department" means a staff member can only access reports whose `department_id` matches the `departmentId` claim in their JWT.
 
@@ -522,6 +574,7 @@ GET /api/reports?search=streetlight
 GET /api/reports?startDate=2026-08-01&endDate=2026-08-31
 GET /api/reports/map?status=IN_PROGRESS&categoryId=1
 GET /api/users?role=CITIZEN&accountStatus=PENDING
+GET /api/audit-logs?action=USER_APPROVED&actorId=1&startDate=2026-09-01
 GET /api/leaderboard?limit=20
 GET /api/notifications?unreadOnly=true
 ```

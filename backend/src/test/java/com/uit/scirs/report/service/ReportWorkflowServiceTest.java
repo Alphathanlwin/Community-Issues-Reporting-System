@@ -1,5 +1,6 @@
 package com.uit.scirs.report.service;
 
+import com.uit.scirs.audit.service.AuditService;
 import com.uit.scirs.category.entity.Category;
 import com.uit.scirs.common.exception.BusinessRuleException;
 import com.uit.scirs.common.exception.InvalidStatusTransitionException;
@@ -54,6 +55,7 @@ class ReportWorkflowServiceTest {
     @Mock ScoreService scoreService;
     @Mock NotificationService notificationService;
     @Mock PriorityService priorityService;
+    @Mock AuditService auditService;
     @InjectMocks ReportWorkflowService workflowService;
 
     @Test

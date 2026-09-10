@@ -1,5 +1,6 @@
 package com.uit.scirs.report.service;
 
+import com.uit.scirs.audit.service.AuditService;
 import com.uit.scirs.category.entity.Category;
 import com.uit.scirs.common.exception.BusinessRuleException;
 import com.uit.scirs.common.exception.ResourceNotFoundException;
@@ -40,6 +41,7 @@ class ReportAssignmentServiceTest {
     @Mock UserRepository userRepository;
     @Mock ReportMapper reportMapper;
     @Mock StatusHistoryService statusHistoryService;
+    @Mock AuditService auditService;
     @InjectMocks ReportAssignmentService assignmentService;
 
     @Test

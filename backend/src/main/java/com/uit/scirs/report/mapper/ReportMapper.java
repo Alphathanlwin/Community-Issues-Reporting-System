@@ -1,5 +1,7 @@
 package com.uit.scirs.report.mapper;
 
+import com.uit.scirs.feedback.mapper.FeedbackMapper;
+import com.uit.scirs.feedback.repository.FeedbackRepository;
 import com.uit.scirs.report.dto.CreateReportDTO;
 import com.uit.scirs.report.dto.PublicReportDTO;
 import com.uit.scirs.report.dto.ReportCommentDTO;
@@ -11,14 +13,35 @@ import com.uit.scirs.report.entity.ImageType;
 import com.uit.scirs.report.entity.Report;
 import com.uit.scirs.report.entity.ReportComment;
 import com.uit.scirs.report.entity.ReportImage;
+import com.uit.scirs.report.entity.ReportStatus;
 import com.uit.scirs.report.entity.ReportStatusHistory;
+import com.uit.scirs.report.repository.ReportSupportRepository;
 import com.uit.scirs.user.entity.User;
 import org.springframework.stereotype.Component;
 
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 @Component
 public class ReportMapper {
+
+    // Feedback can only exist once a report reaches one of these — skip the
+    // lookup for every other report instead of querying feedback rows that
+    // could never exist.
+    private static final Set<ReportStatus> FEEDBACK_ELIGIBLE_STATUSES =
+            EnumSet.of(ReportStatus.RESOLVED, ReportStatus.CLOSED);
+
+    private final FeedbackRepository feedbackRepository;
+    private final FeedbackMapper feedbackMapper;
+    private final ReportSupportRepository reportSupportRepository;
+
+    public ReportMapper(FeedbackRepository feedbackRepository, FeedbackMapper feedbackMapper,
+                         ReportSupportRepository reportSupportRepository) {
+        this.feedbackRepository = feedbackRepository;
+        this.feedbackMapper = feedbackMapper;
+        this.reportSupportRepository = reportSupportRepository;
+    }
 
     public Report toEntity(CreateReportDTO dto) {
         Report entity = new Report();
@@ -47,11 +70,16 @@ public class ReportMapper {
         if (entity.getCategory() != null) {
             dto.setCategoryId(entity.getCategory().getId());
             dto.setCategoryName(entity.getCategory().getName());
+            dto.setCategoryColor(entity.getCategory().getColorHex());
+            dto.setCategoryIcon(entity.getCategory().getIcon());
         }
 
         if (entity.getDepartment() != null) {
             dto.setDepartmentId(entity.getDepartment().getId());
             dto.setDepartmentName(entity.getDepartment().getName());
+        } else if (entity.getCategory() != null && entity.getCategory().getDepartment() != null) {
+            dto.setPlannedDepartmentId(entity.getCategory().getDepartment().getId());
+            dto.setPlannedDepartmentName(entity.getCategory().getDepartment().getName());
         }
 
         // ADMIN / STAFF DTO — identity is always retained for accountability,
@@ -69,6 +97,12 @@ public class ReportMapper {
 
         dto.setImages(entity.getImages().stream().map(this::toImageDTO).toList());
         dto.setCreatedAt(entity.getCreatedAt());
+
+        if (FEEDBACK_ELIGIBLE_STATUSES.contains(entity.getStatus())) {
+            feedbackRepository.findByReportId(entity.getId())
+                    .ifPresent(feedback -> dto.setFeedback(feedbackMapper.toDTO(feedback)));
+        }
+
         return dto;
     }
 
@@ -114,6 +148,7 @@ public class ReportMapper {
             dto.setReporterName(entity.getReporter().getFullName());
         }
         dto.setCreatedAt(entity.getCreatedAt());
+        dto.setSupportCount(reportSupportRepository.countByReportId(entity.getId()));
         return dto;
     }
 
@@ -158,6 +193,7 @@ public class ReportMapper {
             dto.setReporterName(reporter.getFullName());
             dto.setReporterAvatarUrl(reporter.getProfileImageUrl());
         }
+        dto.setSupportCount(reportSupportRepository.countByReportId(entity.getId()));
         return dto;
     }
 

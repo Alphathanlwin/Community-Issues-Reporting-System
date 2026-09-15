@@ -1,5 +1,6 @@
 package com.uit.scirs.notification.service;
 
+import com.uit.scirs.category.entity.Category;
 import com.uit.scirs.common.integration.EmailService;
 import com.uit.scirs.department.entity.Department;
 import com.uit.scirs.notification.dto.NotificationDTO;
@@ -60,6 +61,22 @@ class NotificationServiceTest {
     }
 
     @Test
+    void notifyNewAccount_createsOneNotificationPerAdmin() {
+        User admin1 = user(1L, "admin1@scirs.gov");
+        User admin2 = user(2L, "admin2@scirs.gov");
+        User citizen = user(7L, "citizen@example.com");
+        when(userRepository.findByRoleName(RoleName.ADMIN)).thenReturn(List.of(admin1, admin2));
+
+        notificationService.notifyNewAccount(citizen);
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository, times(2)).save(captor.capture());
+        assertThat(captor.getAllValues())
+                .extracting(Notification::getType)
+                .containsOnly(NotificationType.NEW_ACCOUNT);
+    }
+
+    @Test
     void notifyStatusChange_whenResolved_notifiesReporterWithCompletedType() {
         Report report = report();
         report.setStatus(ReportStatus.RESOLVED);
@@ -70,6 +87,41 @@ class NotificationServiceTest {
         verify(notificationRepository).save(captor.capture());
         assertThat(captor.getValue().getType()).isEqualTo(NotificationType.REPORT_COMPLETED);
         assertThat(captor.getValue().getRecipient()).isEqualTo(report.getReporter());
+    }
+
+    @Test
+    void notifyStatusChange_whenClosedWithRating_notifiesReporterAndDepartmentStaffWithRating() {
+        Report report = report();
+        report.setStatus(ReportStatus.CLOSED);
+        User staff = user(9L, "staff@scirs.gov");
+        when(userRepository.findByDepartmentId(2L)).thenReturn(List.of(staff));
+
+        notificationService.notifyStatusChange(report, 4);
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository, times(2)).save(captor.capture());
+        assertThat(captor.getAllValues())
+                .extracting(Notification::getRecipient)
+                .containsExactlyInAnyOrder(report.getReporter(), staff);
+        assertThat(captor.getAllValues())
+                .extracting(Notification::getRating)
+                .containsOnly(4);
+    }
+
+    @Test
+    void notifyFeedbackReceived_notifiesDepartmentStaffWithRating() {
+        Report report = report();
+        report.setStatus(ReportStatus.CLOSED);
+        User staff = user(9L, "staff@scirs.gov");
+        when(userRepository.findByDepartmentId(2L)).thenReturn(List.of(staff));
+
+        notificationService.notifyFeedbackReceived(report, 3, "Took a while but got fixed.");
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(captor.capture());
+        assertThat(captor.getValue().getRecipient()).isEqualTo(staff);
+        assertThat(captor.getValue().getRating()).isEqualTo(3);
+        assertThat(captor.getValue().getMessage()).contains("3/5").contains("Took a while but got fixed.");
     }
 
     @Test
@@ -111,8 +163,13 @@ class NotificationServiceTest {
         report.setId(1L);
         report.setReportCode("RPT-2026-000001");
         report.setTitle("Pothole");
+        report.setDescription("There is a large pothole on the main road near the market.");
         report.setStatus(ReportStatus.PENDING_APPROVAL);
         report.setReporter(user(7L, "citizen@example.com"));
+        Category category = new Category();
+        category.setId(3L);
+        category.setName("Road Damage");
+        report.setCategory(category);
         Department department = new Department();
         department.setId(2L);
         report.setDepartment(department);

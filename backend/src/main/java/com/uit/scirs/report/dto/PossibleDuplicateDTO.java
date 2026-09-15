@@ -8,10 +8,13 @@ public class PossibleDuplicateDTO {
     private Long reportId;
     private String reportCode;
     private String title;
+    private String description;
+    private String categoryName;
     private String status;
     private double distanceMeters;
     private String thumbnailUrl;
     private LocalDateTime createdAt;
+    private long supportCount;
 
     public Long getReportId() {
         return reportId;
@@ -35,6 +38,22 @@ public class PossibleDuplicateDTO {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getCategoryName() {
+        return categoryName;
+    }
+
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
     }
 
     public String getStatus() {
@@ -67,5 +86,13 @@ public class PossibleDuplicateDTO {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public long getSupportCount() {
+        return supportCount;
+    }
+
+    public void setSupportCount(long supportCount) {
+        this.supportCount = supportCount;
     }
 }

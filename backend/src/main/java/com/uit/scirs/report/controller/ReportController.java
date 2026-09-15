@@ -12,12 +12,15 @@ import com.uit.scirs.report.dto.ReportDTO;
 import com.uit.scirs.report.dto.ReportMapDTO;
 import com.uit.scirs.report.dto.ReportSubmissionResultDTO;
 import com.uit.scirs.report.dto.ReportStatusHistoryDTO;
+import com.uit.scirs.report.dto.ReportSupportResultDTO;
 import com.uit.scirs.report.dto.UpdateReportPriorityDTO;
 import com.uit.scirs.report.dto.UpdateReportStatusDTO;
+import com.uit.scirs.report.entity.ReportPriority;
 import com.uit.scirs.report.entity.ReportStatus;
 import com.uit.scirs.report.service.ReportAssignmentService;
 import com.uit.scirs.report.service.ReportCommentService;
 import com.uit.scirs.report.service.ReportService;
+import com.uit.scirs.report.service.ReportSupportService;
 import com.uit.scirs.report.service.ReportWorkflowService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
@@ -32,6 +35,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -58,15 +62,18 @@ public class ReportController {
     private final ReportWorkflowService reportWorkflowService;
     private final ReportAssignmentService reportAssignmentService;
     private final ReportCommentService reportCommentService;
+    private final ReportSupportService reportSupportService;
 
     public ReportController(ReportService reportService,
                              ReportWorkflowService reportWorkflowService,
                              ReportAssignmentService reportAssignmentService,
-                             ReportCommentService reportCommentService) {
+                             ReportCommentService reportCommentService,
+                             ReportSupportService reportSupportService) {
         this.reportService = reportService;
         this.reportWorkflowService = reportWorkflowService;
         this.reportAssignmentService = reportAssignmentService;
         this.reportCommentService = reportCommentService;
+        this.reportSupportService = reportSupportService;
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -92,6 +99,7 @@ public class ReportController {
             @RequestParam(required = false) ReportStatus status,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) Long departmentId,
+            @RequestParam(required = false) ReportPriority priority,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
@@ -103,7 +111,7 @@ public class ReportController {
                 Math.min(Math.max(size, 1), 100),
                 Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(reportService.getReports(
-                currentUser, status, categoryId, departmentId, search, startDate, endDate, pageable));
+                currentUser, status, categoryId, departmentId, priority, search, startDate, endDate, pageable));
     }
 
     @GetMapping("/my")
@@ -207,6 +215,22 @@ public class ReportController {
     @PreAuthorize("hasAnyRole('ADMIN','STAFF','CITIZEN')")
     public ResponseEntity<List<ReportMapDTO>> getPublicMapPins() {
         return ResponseEntity.ok(reportService.getApprovedMapReports());
+    }
+
+    // The community-feed "Support" heart button — reversible, rate-limited per
+    // citizen per rolling 24h window (see ReportSupportService).
+    @PostMapping("/{id}/support")
+    @PreAuthorize("hasRole('CITIZEN')")
+    public ResponseEntity<ReportSupportResultDTO> support(@PathVariable Long id,
+                                                            @AuthenticationPrincipal CurrentUser currentUser) {
+        return ResponseEntity.ok(reportSupportService.support(id, currentUser.getId()));
+    }
+
+    @DeleteMapping("/{id}/support")
+    @PreAuthorize("hasRole('CITIZEN')")
+    public ResponseEntity<ReportSupportResultDTO> removeSupport(@PathVariable Long id,
+                                                                  @AuthenticationPrincipal CurrentUser currentUser) {
+        return ResponseEntity.ok(reportSupportService.removeSupport(id, currentUser.getId()));
     }
 
     // Citizen "What's happening in Yangon" feed — active reports from anyone,

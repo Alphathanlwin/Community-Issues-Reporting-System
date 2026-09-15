@@ -26,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -76,7 +78,23 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserDTO> getStaff() {
-        return userMapper.toDTOList(userRepository.findByRoleName(RoleName.STAFF));
+        List<UserDTO> staff = userMapper.toDTOList(userRepository.findByRoleName(RoleName.STAFF));
+        attachDepartmentNames(staff);
+        return staff;
+    }
+
+    // User.departmentId is a plain FK column, not a @ManyToOne relation (see
+    // User.java), so UserMapper can't fill in the name on its own — resolve it
+    // here in one batch instead of guessing it from the account's email like
+    // the admin console used to (AdminStaffPage's old resolveDepartmentName).
+    private void attachDepartmentNames(List<UserDTO> users) {
+        Map<Long, String> namesById = departmentRepository.findAll().stream()
+                .collect(Collectors.toMap(Department::getId, Department::getName));
+        users.forEach(u -> {
+            if (u.getDepartmentId() != null) {
+                u.setDepartmentName(namesById.get(u.getDepartmentId()));
+            }
+        });
     }
 
     @Transactional(readOnly = true)
@@ -118,7 +136,10 @@ public class UserService {
         auditService.record(AuditAction.STAFF_CREATED, "USER", saved.getId(),
                 saved.getFullName() + " (staff)",
                 "Staff account created · " + department.getName() + " · " + saved.getEmail());
-        return userMapper.toDTO(saved);
+
+        UserDTO created = userMapper.toDTO(saved);
+        created.setDepartmentName(department.getName());
+        return created;
     }
 
     @Transactional

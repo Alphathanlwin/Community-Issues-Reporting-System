@@ -11,6 +11,7 @@ public class NotificationDTO {
     private boolean read;
     private Long reportId;
     private String reportCode;
+    private Integer rating;
     private LocalDateTime createdAt;
 
     public Long getId() {
@@ -67,6 +68,14 @@ public class NotificationDTO {
 
     public void setReportCode(String reportCode) {
         this.reportCode = reportCode;
+    }
+
+    public Integer getRating() {
+        return rating;
+    }
+
+    public void setRating(Integer rating) {
+        this.rating = rating;
     }
 
     public LocalDateTime getCreatedAt() {

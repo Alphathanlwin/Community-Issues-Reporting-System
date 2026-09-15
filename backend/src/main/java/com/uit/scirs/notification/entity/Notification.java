@@ -43,6 +43,12 @@ public class Notification {
     @Column(nullable = false)
     private String message;
 
+    // Populated only for notifications tied to a citizen's feedback submission
+    // (1-5), so the notification card can render it as stars without a
+    // separate lookup against the feedback table.
+    @Column(name = "rating")
+    private Integer rating;
+
     // Property name is "read" (JavaBean-derived from isRead()/setRead()), not
     // "isRead" — Spring Data's derived-query parser resolves from the bean
     // property, matching the same convention User.active/isActive() already
@@ -103,6 +109,14 @@ public class Notification {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public Integer getRating() {
+        return rating;
+    }
+
+    public void setRating(Integer rating) {
+        this.rating = rating;
     }
 
     public boolean isRead() {

@@ -17,6 +17,7 @@ public class ReportMapDTO {
     private String reporterName;
     private boolean anonymous;
     private LocalDateTime createdAt;
+    private long supportCount;
 
     public Long getId() {
         return id;
@@ -112,5 +113,13 @@ public class ReportMapDTO {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public long getSupportCount() {
+        return supportCount;
+    }
+
+    public void setSupportCount(long supportCount) {
+        this.supportCount = supportCount;
     }
 }

@@ -9,9 +9,11 @@ import com.uit.scirs.feedback.dto.FeedbackDTO;
 import com.uit.scirs.feedback.entity.Feedback;
 import com.uit.scirs.feedback.mapper.FeedbackMapper;
 import com.uit.scirs.feedback.repository.FeedbackRepository;
+import com.uit.scirs.notification.service.NotificationService;
 import com.uit.scirs.report.entity.Report;
 import com.uit.scirs.report.entity.ReportStatus;
 import com.uit.scirs.report.repository.ReportRepository;
+import com.uit.scirs.report.service.StatusHistoryService;
 import com.uit.scirs.score.entity.PointReason;
 import com.uit.scirs.score.service.ScoreService;
 import com.uit.scirs.user.entity.RoleName;
@@ -35,17 +37,23 @@ public class FeedbackService {
     private final UserRepository userRepository;
     private final FeedbackMapper feedbackMapper;
     private final ScoreService scoreService;
+    private final StatusHistoryService statusHistoryService;
+    private final NotificationService notificationService;
 
     public FeedbackService(FeedbackRepository feedbackRepository,
                             ReportRepository reportRepository,
                             UserRepository userRepository,
                             FeedbackMapper feedbackMapper,
-                            ScoreService scoreService) {
+                            ScoreService scoreService,
+                            StatusHistoryService statusHistoryService,
+                            NotificationService notificationService) {
         this.feedbackRepository = feedbackRepository;
         this.reportRepository = reportRepository;
         this.userRepository = userRepository;
         this.feedbackMapper = feedbackMapper;
         this.scoreService = scoreService;
+        this.statusHistoryService = statusHistoryService;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -76,6 +84,24 @@ public class FeedbackService {
 
         Feedback saved = feedbackRepository.save(feedback);
         scoreService.award(citizen, PointReason.FEEDBACK_GIVEN, report);
+
+        // A resolved report is done once the citizen has weighed in — close it.
+        // (It may already be CLOSED if staff closed it manually without
+        // waiting for feedback; notify the department about the feedback anyway.)
+        if (report.getStatus() == ReportStatus.RESOLVED) {
+            ReportStatus oldStatus = report.getStatus();
+            report.setStatus(ReportStatus.CLOSED);
+            Report savedReport = reportRepository.save(report);
+            // The citizen's own words go into the timeline remarks so staff see
+            // exactly what was said, permanently, next to the CLOSED entry.
+            String remarks = dto.getComment() != null && !dto.getComment().isBlank()
+                    ? "Closed after citizen feedback: \"" + dto.getComment() + "\""
+                    : "Closed after citizen feedback.";
+            statusHistoryService.record(savedReport, oldStatus, ReportStatus.CLOSED, citizen, remarks);
+            notificationService.notifyStatusChange(savedReport, dto.getRating());
+        } else {
+            notificationService.notifyFeedbackReceived(report, dto.getRating(), dto.getComment());
+        }
 
         return feedbackMapper.toDTO(saved);
     }

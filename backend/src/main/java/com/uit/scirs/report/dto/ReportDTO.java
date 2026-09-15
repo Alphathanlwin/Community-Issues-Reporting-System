@@ -1,5 +1,7 @@
 package com.uit.scirs.report.dto;
 
+import com.uit.scirs.feedback.dto.FeedbackDTO;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,8 +20,16 @@ public class ReportDTO {
     private String addressText;
     private Long categoryId;
     private String categoryName;
+    private String categoryColor;
+    private String categoryIcon;
     private Long departmentId;
     private String departmentName;
+    // Only set while `department` is still null (i.e. before approval) — the
+    // department the report's category auto-routes to once approved, shown to
+    // the admin as "Planned department" so they can catch a miscategorized
+    // report and reassign it before it goes further.
+    private Long plannedDepartmentId;
+    private String plannedDepartmentName;
     private Long reporterId;
     private String reporterName;
     private boolean anonymous;
@@ -27,6 +37,10 @@ public class ReportDTO {
     private String assignedStaffName;
     private List<ReportImageDTO> images;
     private LocalDateTime createdAt;
+    // Only set once the reporting citizen has left feedback (RESOLVED/CLOSED
+    // reports only) — shown to staff/admin on the Resolution tab and to the
+    // citizen on their own report detail.
+    private FeedbackDTO feedback;
 
     public Long getId() {
         return id;
@@ -124,6 +138,22 @@ public class ReportDTO {
         this.categoryName = categoryName;
     }
 
+    public String getCategoryColor() {
+        return categoryColor;
+    }
+
+    public void setCategoryColor(String categoryColor) {
+        this.categoryColor = categoryColor;
+    }
+
+    public String getCategoryIcon() {
+        return categoryIcon;
+    }
+
+    public void setCategoryIcon(String categoryIcon) {
+        this.categoryIcon = categoryIcon;
+    }
+
     public Long getDepartmentId() {
         return departmentId;
     }
@@ -138,6 +168,22 @@ public class ReportDTO {
 
     public void setDepartmentName(String departmentName) {
         this.departmentName = departmentName;
+    }
+
+    public Long getPlannedDepartmentId() {
+        return plannedDepartmentId;
+    }
+
+    public void setPlannedDepartmentId(Long plannedDepartmentId) {
+        this.plannedDepartmentId = plannedDepartmentId;
+    }
+
+    public String getPlannedDepartmentName() {
+        return plannedDepartmentName;
+    }
+
+    public void setPlannedDepartmentName(String plannedDepartmentName) {
+        this.plannedDepartmentName = plannedDepartmentName;
     }
 
     public Long getReporterId() {
@@ -194,5 +240,13 @@ public class ReportDTO {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public FeedbackDTO getFeedback() {
+        return feedback;
+    }
+
+    public void setFeedback(FeedbackDTO feedback) {
+        this.feedback = feedback;
     }
 }

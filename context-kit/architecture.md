@@ -244,7 +244,7 @@ Staff works the report
    │  ├── may add ReportComment for the department
    │  ├── uploads completion photo(s) — required before RESOLVED
    │  ├── status → RESOLVED, resolvedAt = now
-   │  ├── ScoreService.award(citizen, REPORT_RESOLVED, +20)
+   │  ├── ScoreService.award(citizen, REPORT_RESOLVED, +25)
    │  └── notify citizen
    ▼
 Citizen leaves feedback (rating 1–5 + comment)

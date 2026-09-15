@@ -11,7 +11,7 @@ import java.util.Map;
 @Component
 public class ImageValidator {
 
-    private static final long MAX_IMAGE_SIZE_BYTES = 5L * 1024 * 1024;
+    private static final long MAX_IMAGE_SIZE_BYTES = 10L * 1024 * 1024;
 
     private static final Map<String, String> ALLOWED_CONTENT_TYPES = Map.of(
             "image/jpeg", "jpg",
@@ -24,7 +24,7 @@ public class ImageValidator {
         }
 
         if (file.getSize() > MAX_IMAGE_SIZE_BYTES) {
-            throw new FileStorageException("Image size must not exceed 5 MB");
+            throw new FileStorageException("Image size must not exceed 10 MB");
         }
 
         String contentType = file.getContentType();

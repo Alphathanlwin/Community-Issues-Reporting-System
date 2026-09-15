@@ -5,6 +5,7 @@ import com.uit.scirs.report.entity.ImageType;
 import com.uit.scirs.report.entity.Report;
 import com.uit.scirs.report.entity.ReportStatus;
 import com.uit.scirs.report.repository.ReportRepository;
+import com.uit.scirs.report.repository.ReportSupportRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,9 +35,12 @@ public class DuplicateDetectionService {
             List.of(ReportStatus.RESOLVED, ReportStatus.CLOSED, ReportStatus.REJECTED);
 
     private final ReportRepository reportRepository;
+    private final ReportSupportRepository reportSupportRepository;
 
-    public DuplicateDetectionService(ReportRepository reportRepository) {
+    public DuplicateDetectionService(ReportRepository reportRepository,
+                                      ReportSupportRepository reportSupportRepository) {
         this.reportRepository = reportRepository;
+        this.reportSupportRepository = reportSupportRepository;
     }
 
     @Transactional(readOnly = true)
@@ -80,9 +84,14 @@ public class DuplicateDetectionService {
         dto.setReportId(report.getId());
         dto.setReportCode(report.getReportCode());
         dto.setTitle(report.getTitle());
+        dto.setDescription(report.getDescription());
+        if (report.getCategory() != null) {
+            dto.setCategoryName(report.getCategory().getName());
+        }
         dto.setStatus(report.getStatus().name());
         dto.setDistanceMeters(Math.round(distanceMeters * 10.0) / 10.0);
         dto.setCreatedAt(report.getCreatedAt());
+        dto.setSupportCount(reportSupportRepository.countByReportId(report.getId()));
         report.getImages().stream()
                 .filter(image -> image.getImageType() == ImageType.REPORT_PHOTO)
                 .findFirst()

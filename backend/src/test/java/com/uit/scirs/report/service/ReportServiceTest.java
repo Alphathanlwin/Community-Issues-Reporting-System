@@ -330,7 +330,7 @@ class ReportServiceTest {
     @Test
     void getMapPins_asCitizen_restrictsToPublicStatuses() {
         CurrentUser citizen = new CurrentUser(7L, "citizen@example.com", RoleName.CITIZEN, null);
-        when(reportRepository.findForMap(null, null, null, null, null, null, true,
+        when(reportRepository.findForMap(null, null, null, null, null, null, null, true,
                 List.of(ReportStatus.PENDING_APPROVAL, ReportStatus.REJECTED)))
                 .thenReturn(List.of());
         when(reportMapper.toMapDTOList(List.of())).thenReturn(List.of());
@@ -338,21 +338,35 @@ class ReportServiceTest {
         List<ReportMapDTO> result = reportService.getMapPins(null, null, null, null, null, null, citizen);
 
         assertThat(result).isEmpty();
-        verify(reportRepository).findForMap(null, null, null, null, null, null, true,
+        verify(reportRepository).findForMap(null, null, null, null, null, null, null, true,
                 List.of(ReportStatus.PENDING_APPROVAL, ReportStatus.REJECTED));
     }
 
     @Test
     void getMapPins_asAdmin_doesNotRestrictStatuses() {
         CurrentUser admin = new CurrentUser(1L, "admin@example.com", RoleName.ADMIN, null);
-        when(reportRepository.findForMap(3L, ReportStatus.ASSIGNED, null, null, null, null, false,
+        when(reportRepository.findForMap(3L, ReportStatus.ASSIGNED, null, null, null, null, null, false,
                 List.of(ReportStatus.PENDING_APPROVAL, ReportStatus.REJECTED)))
                 .thenReturn(List.of());
         when(reportMapper.toMapDTOList(List.of())).thenReturn(List.of());
 
         reportService.getMapPins(3L, ReportStatus.ASSIGNED, null, null, null, null, admin);
 
-        verify(reportRepository).findForMap(3L, ReportStatus.ASSIGNED, null, null, null, null, false,
+        verify(reportRepository).findForMap(3L, ReportStatus.ASSIGNED, null, null, null, null, null, false,
+                List.of(ReportStatus.PENDING_APPROVAL, ReportStatus.REJECTED));
+    }
+
+    @Test
+    void getMapPins_asStaff_restrictsToOwnDepartment() {
+        CurrentUser staff = new CurrentUser(9L, "staff@example.com", RoleName.STAFF, 4L);
+        when(reportRepository.findForMap(null, null, 4L, null, null, null, null, false,
+                List.of(ReportStatus.PENDING_APPROVAL, ReportStatus.REJECTED)))
+                .thenReturn(List.of());
+        when(reportMapper.toMapDTOList(List.of())).thenReturn(List.of());
+
+        reportService.getMapPins(null, null, null, null, null, null, staff);
+
+        verify(reportRepository).findForMap(null, null, 4L, null, null, null, null, false,
                 List.of(ReportStatus.PENDING_APPROVAL, ReportStatus.REJECTED));
     }
 

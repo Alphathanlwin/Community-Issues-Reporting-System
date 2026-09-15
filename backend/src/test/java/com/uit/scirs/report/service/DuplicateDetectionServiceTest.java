@@ -5,6 +5,7 @@ import com.uit.scirs.report.dto.PossibleDuplicateDTO;
 import com.uit.scirs.report.entity.Report;
 import com.uit.scirs.report.entity.ReportStatus;
 import com.uit.scirs.report.repository.ReportRepository;
+import com.uit.scirs.report.repository.ReportSupportRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -25,6 +26,7 @@ import static org.mockito.Mockito.when;
 class DuplicateDetectionServiceTest {
 
     @Mock ReportRepository reportRepository;
+    @Mock ReportSupportRepository reportSupportRepository;
     @InjectMocks DuplicateDetectionService duplicateDetectionService;
 
     @Test

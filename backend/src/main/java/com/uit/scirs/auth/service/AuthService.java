@@ -10,6 +10,7 @@ import com.uit.scirs.common.exception.AccountNotApprovedException;
 import com.uit.scirs.common.exception.DuplicateResourceException;
 import com.uit.scirs.common.exception.ResourceNotFoundException;
 import com.uit.scirs.common.security.JwtUtil;
+import com.uit.scirs.notification.service.NotificationService;
 import com.uit.scirs.user.entity.AccountStatus;
 import com.uit.scirs.user.entity.Role;
 import com.uit.scirs.user.entity.RoleName;
@@ -29,17 +30,20 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthMapper authMapper;
+    private final NotificationService notificationService;
 
     public AuthService(UserRepository userRepository,
                         RoleRepository roleRepository,
                         PasswordEncoder passwordEncoder,
                         JwtUtil jwtUtil,
-                        AuthMapper authMapper) {
+                        AuthMapper authMapper,
+                        NotificationService notificationService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.authMapper = authMapper;
+        this.notificationService = notificationService;
     }
 
     @Transactional(readOnly = true)
@@ -87,6 +91,7 @@ public class AuthService {
         citizen.setNrcNumber(dto.getNrcNumber());
 
         User saved = userRepository.save(citizen);
+        notificationService.notifyNewAccount(saved);
 
         return authMapper.toRegisterResponse(saved, "Your account is pending admin approval.");
     }

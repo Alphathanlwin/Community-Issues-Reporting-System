@@ -8,6 +8,7 @@ import com.uit.scirs.auth.mapper.AuthMapper;
 import com.uit.scirs.common.exception.AccountNotApprovedException;
 import com.uit.scirs.common.exception.DuplicateResourceException;
 import com.uit.scirs.common.security.JwtUtil;
+import com.uit.scirs.notification.service.NotificationService;
 import com.uit.scirs.user.entity.AccountStatus;
 import com.uit.scirs.user.entity.Role;
 import com.uit.scirs.user.entity.RoleName;
@@ -42,6 +43,7 @@ class AuthServiceTest {
     @Mock PasswordEncoder passwordEncoder;
     @Mock JwtUtil jwtUtil;
     @Mock AuthMapper authMapper;
+    @Mock NotificationService notificationService;
     @InjectMocks AuthService authService;
 
     @Test
@@ -122,6 +124,7 @@ class AuthServiceTest {
         assertThat(savedUser.getValue().getAccountStatus()).isEqualTo(AccountStatus.PENDING);
         assertThat(result.getAccountStatus()).isEqualTo("PENDING");
         assertThat(result.getRole()).isEqualTo("CITIZEN");
+        verify(notificationService).notifyNewAccount(savedUser.getValue());
     }
 
     @Test

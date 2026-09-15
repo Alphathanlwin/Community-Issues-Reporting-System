@@ -32,8 +32,11 @@ import java.util.Set;
 @Service
 public class ReportAssignmentService {
 
-    private static final Set<ReportStatus> REASSIGNABLE_STATUSES =
-            EnumSet.of(ReportStatus.ASSIGNED, ReportStatus.IN_PROGRESS, ReportStatus.RESOLVED);
+    // PENDING_APPROVAL is included so an admin can correct a miscategorized
+    // report's routing (see ReportDTO#plannedDepartmentName) before it's ever
+    // approved, not only after.
+    private static final Set<ReportStatus> REASSIGNABLE_STATUSES = EnumSet.of(
+            ReportStatus.PENDING_APPROVAL, ReportStatus.ASSIGNED, ReportStatus.IN_PROGRESS, ReportStatus.RESOLVED);
 
     private final ReportRepository reportRepository;
     private final DepartmentRepository departmentRepository;

@@ -35,14 +35,14 @@ class LocalStorageServiceTest {
     }
 
     @Test
-    void store_withFileOverFiveMegabytes_throwsFileStorageException() {
+    void store_withFileOverTenMegabytes_throwsFileStorageException() {
         LocalStorageService service = storageService(tempDir);
-        byte[] oversized = new byte[6 * 1024 * 1024];
+        byte[] oversized = new byte[11 * 1024 * 1024];
         MultipartFile file = new MockMultipartFile("images", "big.jpg", "image/jpeg", oversized);
 
         assertThatThrownBy(() -> service.store(file, "reports"))
                 .isInstanceOf(FileStorageException.class)
-                .hasMessageContaining("5 MB");
+                .hasMessageContaining("10 MB");
     }
 
     @Test

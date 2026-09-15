@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -43,7 +44,6 @@ public class DashboardService {
 
     private static final List<ReportStatus> OPEN_STATUSES = List.of(ReportStatus.ASSIGNED, ReportStatus.IN_PROGRESS);
     private static final List<ReportStatus> RESOLVED_STATUSES = List.of(ReportStatus.RESOLVED, ReportStatus.CLOSED);
-    private static final List<ReportStatus> NEW_STATUSES = List.of(ReportStatus.ASSIGNED);
     private static final List<ReportStatus> DEPARTMENT_SCOPED_STATUSES =
             List.of(ReportStatus.ASSIGNED, ReportStatus.IN_PROGRESS, ReportStatus.RESOLVED, ReportStatus.CLOSED);
     private static final int MONTHLY_SERIES_LENGTH = 12;
@@ -80,6 +80,8 @@ public class DashboardService {
         dto.setPendingReportCount(reportRepository.countByStatus(ReportStatus.PENDING_APPROVAL));
         dto.setTotalCitizenCount(userRepository.countByRoleName(RoleName.CITIZEN));
         dto.setTotalReportCount(reportRepository.count());
+        dto.setTotalDepartmentCount(departmentRepository.count());
+        dto.setTotalCategoryCount(categoryRepository.count());
         // Only accounts still awaiting a decision — the panel renders inline
         // approve/deny, which the approve/reject endpoints reject for any
         // non-PENDING account.
@@ -106,7 +108,8 @@ public class DashboardService {
         dto.setTotalReports(reportRepository.countByDepartmentAndStatusIn(departmentId, DEPARTMENT_SCOPED_STATUSES));
         dto.setResolvedReports(reportRepository.countByDepartmentAndStatusIn(departmentId, RESOLVED_STATUSES));
         dto.setRemainingReports(reportRepository.countByDepartmentAndStatusIn(departmentId, OPEN_STATUSES));
-        dto.setNewReports(reportRepository.countByDepartmentAndStatusIn(departmentId, NEW_STATUSES));
+        dto.setNewReports(
+                reportRepository.countByDepartmentAndApprovedAtAfter(departmentId, LocalDate.now().atStartOfDay()));
         dto.setMonthlySeries(buildMonthlySeries(departmentId));
 
         List<Report> recent = reportRepository.search(null, null, departmentId);

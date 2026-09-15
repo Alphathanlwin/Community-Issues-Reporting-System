@@ -8,7 +8,9 @@ public class UpdateUserDTO {
     @NotBlank(message = "Full name is required")
     private String fullName;
 
-    @Pattern(regexp = "^\\+?[0-9]{7,15}$", message = "Invalid phone number")
+    // Myanmar mobile only: fixed "+959" prefix + the 9-digit subscriber
+    // number (see PhoneInput on the frontend).
+    @Pattern(regexp = "^\\+959[0-9]{9}$", message = "Enter a 9-digit phone number")
     private String phone;
 
     private String profileImageUrl;

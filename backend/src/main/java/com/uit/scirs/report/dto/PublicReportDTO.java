@@ -32,6 +32,7 @@ public class PublicReportDTO {
     private boolean anonymous;
     private String reporterName;
     private String reporterAvatarUrl;
+    private long supportCount;
 
     public Long getId() {
         return id;
@@ -175,5 +176,13 @@ public class PublicReportDTO {
 
     public void setReporterAvatarUrl(String reporterAvatarUrl) {
         this.reporterAvatarUrl = reporterAvatarUrl;
+    }
+
+    public long getSupportCount() {
+        return supportCount;
+    }
+
+    public void setSupportCount(long supportCount) {
+        this.supportCount = supportCount;
     }
 }

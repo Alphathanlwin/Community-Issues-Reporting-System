@@ -124,7 +124,9 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>test</scope>
+            <!-- runtime, not test: backs the offline "dev" profile (application-dev.properties)
+                 that mvn spring-boot:run uses by default, not just @SpringBootTest -->
+            <scope>runtime</scope>
         </dependency>
     </dependencies>
 

@@ -1,6 +1,7 @@
 package com.uit.scirs.report.repository;
 
 import com.uit.scirs.report.entity.Report;
+import com.uit.scirs.report.entity.ReportPriority;
 import com.uit.scirs.report.entity.ReportStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -68,6 +69,7 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
            WHERE (:status IS NULL OR r.status = :status)
              AND (:categoryId IS NULL OR r.category.id = :categoryId)
              AND (:departmentId IS NULL OR r.department.id = :departmentId)
+             AND (:priority IS NULL OR r.priority = :priority)
              AND (LOWER(r.reportCode) LIKE :searchPattern OR LOWER(r.title) LIKE :searchPattern)
              AND r.createdAt >= :from
              AND r.createdAt < :to
@@ -75,17 +77,21 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
     Page<Report> searchReports(ReportStatus status,
                                 Long categoryId,
                                 Long departmentId,
+                                ReportPriority priority,
                                 String searchPattern,
                                 LocalDateTime from,
                                 LocalDateTime to,
                                 Pageable pageable);
 
-    // Optional filters: category/status/bounding-box parameters are skipped when null.
-    // restrictToPublic=true (citizens) additionally excludes hiddenStatuses.
+    // Optional filters: category/status/department/bounding-box parameters are
+    // skipped when null. restrictToPublic=true (citizens) additionally
+    // excludes hiddenStatuses. departmentId is only ever non-null when the
+    // service supplies its own (STAFF scoping) — never a client-trusted value.
     @Query("""
            SELECT r FROM Report r
            WHERE (:categoryId IS NULL OR r.category.id = :categoryId)
              AND (:status IS NULL OR r.status = :status)
+             AND (:departmentId IS NULL OR r.department.id = :departmentId)
              AND (:minLat IS NULL OR r.latitude >= :minLat)
              AND (:maxLat IS NULL OR r.latitude <= :maxLat)
              AND (:minLng IS NULL OR r.longitude >= :minLng)
@@ -95,6 +101,7 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
            """)
     List<Report> findForMap(Long categoryId,
                              ReportStatus status,
+                             Long departmentId,
                              BigDecimal minLat,
                              BigDecimal maxLat,
                              BigDecimal minLng,
@@ -109,6 +116,15 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
              AND r.status IN :statuses
            """)
     long countByDepartmentAndStatusIn(Long departmentId, List<ReportStatus> statuses);
+
+    // "New Today" widget — reports routed into this department (approvedAt) since
+    // the start of today. departmentId=null aggregates across every department.
+    @Query("""
+           SELECT COUNT(r) FROM Report r
+           WHERE (:departmentId IS NULL OR r.department.id = :departmentId)
+             AND r.approvedAt >= :since
+           """)
+    long countByDepartmentAndApprovedAtAfter(Long departmentId, LocalDateTime since);
 
     // Raw creation timestamps only — bucketed into a month-by-month series in
     // the service layer so the query stays portable across Postgres and the

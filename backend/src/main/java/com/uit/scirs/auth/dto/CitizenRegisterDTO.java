@@ -18,7 +18,10 @@ public class CitizenRegisterDTO {
     @Email(message = "Invalid email format")
     private String email;
 
-    @Pattern(regexp = "^\\+?[0-9]{7,15}$", message = "Invalid phone number")
+    // Myanmar mobile only: fixed "+959" country/trunk prefix + the 9-digit
+    // subscriber number — callers never type "0" (domestic) or "+95"+"9"
+    // themselves, just the 9 digits (see PhoneInput on the frontend).
+    @Pattern(regexp = "^\\+959[0-9]{9}$", message = "Enter a 9-digit phone number")
     private String phone;
 
     @NotBlank(message = "Password is required")

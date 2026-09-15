@@ -15,7 +15,9 @@ public class CreateStaffDTO {
     @Email(message = "Invalid email format")
     private String email;
 
-    @Pattern(regexp = "^\\+?[0-9]{7,15}$", message = "Invalid phone number")
+    // Myanmar mobile only: fixed "+959" prefix + the 9-digit subscriber
+    // number (see PhoneInput on the frontend).
+    @Pattern(regexp = "^\\+959[0-9]{9}$", message = "Enter a 9-digit phone number")
     private String phone;
 
     @NotBlank(message = "Password is required")

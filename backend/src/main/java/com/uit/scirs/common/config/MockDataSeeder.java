@@ -461,7 +461,7 @@ public class MockDataSeeder implements CommandLineRunner {
         } else if (routed) {
             awardPoints(reporter, report, 10, PointReason.REPORT_APPROVED);
             if (spec.status() == ReportStatus.RESOLVED || spec.status() == ReportStatus.CLOSED) {
-                awardPoints(reporter, report, 20, PointReason.REPORT_RESOLVED);
+                awardPoints(reporter, report, 25, PointReason.REPORT_RESOLVED);
             }
         }
     }

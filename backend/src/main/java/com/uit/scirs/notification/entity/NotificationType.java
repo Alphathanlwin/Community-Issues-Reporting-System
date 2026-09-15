@@ -1,6 +1,7 @@
 package com.uit.scirs.notification.entity;
 
 public enum NotificationType {
+    NEW_ACCOUNT,
     NEW_REPORT,
     URGENT_REPORT,
     REPORT_WAITING_TOO_LONG,

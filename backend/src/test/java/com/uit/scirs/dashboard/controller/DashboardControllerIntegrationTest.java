@@ -89,7 +89,9 @@ class DashboardControllerIntegrationTest {
         Category pothole = potholeCategory();
         User reporter = persistCitizen("reporter-staff-dash@example.com", AccountStatus.APPROVED);
 
-        persistReport(reporter, pothole, roads, ReportStatus.ASSIGNED, LocalDateTime.now().minusDays(1), null);
+        // Routed into the department today — counts toward "New Today".
+        persistReport(reporter, pothole, roads, ReportStatus.ASSIGNED, LocalDateTime.now(), null);
+        // Routed in two days ago and since resolved — counts as resolved, but not "new today".
         LocalDateTime approvedAt = LocalDateTime.now().minusDays(2);
         persistReport(reporter, pothole, roads, ReportStatus.RESOLVED, approvedAt, approvedAt.plusHours(5));
 

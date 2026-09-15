@@ -14,6 +14,7 @@ public class UserDTO {
     private LocalDate dateOfBirth;
     private String nrcNumber;
     private Long departmentId;
+    private String departmentName;
     private Integer scorePoints;
     private String profileImageUrl;
     private boolean active;
@@ -89,6 +90,14 @@ public class UserDTO {
 
     public void setDepartmentId(Long departmentId) {
         this.departmentId = departmentId;
+    }
+
+    public String getDepartmentName() {
+        return departmentName;
+    }
+
+    public void setDepartmentName(String departmentName) {
+        this.departmentName = departmentName;
     }
 
     public Integer getScorePoints() {

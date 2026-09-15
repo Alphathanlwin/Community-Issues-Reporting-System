@@ -11,6 +11,13 @@ services:
     plan: free
     healthCheckPath: /actuator/health
     envVars:
+      # Local dev now defaults to an offline "dev" profile (in-memory H2) so
+      # it stops competing with this deployment for Supabase's pooler slots.
+      # That default only applies when no profile is active, so pin this
+      # deployment explicitly to avoid ever falling back to it.
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+
       # ---- Database (Supabase Postgres, or any Postgres 15+) ----
       - key: SPRING_DATASOURCE_URL
         sync: false # jdbc:postgresql://HOST:PORT/DB?sslmode=require&prepareThreshold=0 — see BUG-06 in docs/bug-log.md for why prepareThreshold=0 is required against Supabase's pooler

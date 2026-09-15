@@ -23,7 +23,9 @@ import com.uit.scirs.report.entity.ImageType;
 import com.uit.scirs.report.entity.Report;
 import com.uit.scirs.report.entity.ReportConfirmation;
 import com.uit.scirs.report.entity.ReportImage;
+import com.uit.scirs.report.entity.ReportPriority;
 import com.uit.scirs.report.entity.ReportStatus;
+import com.uit.scirs.report.entity.ReportStatusHistory;
 import com.uit.scirs.report.mapper.ReportMapper;
 import com.uit.scirs.report.repository.ReportConfirmationRepository;
 import com.uit.scirs.report.repository.ReportRepository;
@@ -195,6 +197,17 @@ public class ReportService {
         }
 
         Report saved = reportRepository.save(report);
+
+        // Seeds the status timeline (ReportController#getHistory) with a starting
+        // "Report submitted" step — otherwise a freshly created report has no
+        // history rows until its first status change.
+        ReportStatusHistory submittedEntry = new ReportStatusHistory();
+        submittedEntry.setReport(saved);
+        submittedEntry.setOldStatus(null);
+        submittedEntry.setNewStatus(ReportStatus.PENDING_APPROVAL);
+        submittedEntry.setChangedBy(citizen);
+        reportStatusHistoryRepository.save(submittedEntry);
+
         notificationService.notifyNewReport(saved);
         return reportMapper.toDTO(saved);
     }
@@ -240,6 +253,7 @@ public class ReportService {
                                               ReportStatus status,
                                               Long categoryId,
                                               Long departmentId,
+                                              ReportPriority priority,
                                               String search,
                                               LocalDate startDate,
                                               LocalDate endDate,
@@ -260,7 +274,7 @@ public class ReportService {
         LocalDateTime to = endDate != null ? endDate.plusDays(1).atStartOfDay() : LocalDateTime.of(9999, 12, 31, 0, 0);
 
         Page<ReportDTO> page = reportRepository
-                .searchReports(status, categoryId, effectiveDepartmentId, searchPattern, from, to, pageable)
+                .searchReports(status, categoryId, effectiveDepartmentId, priority, searchPattern, from, to, pageable)
                 .map(reportMapper::toDTO);
         return PageResponse.from(page);
     }
@@ -271,7 +285,10 @@ public class ReportService {
                                           BigDecimal minLng, BigDecimal maxLng,
                                           CurrentUser currentUser) {
         boolean restrictToPublic = currentUser.getRole() == RoleName.CITIZEN;
-        List<Report> reports = reportRepository.findForMap(categoryId, status, minLat, maxLat, minLng, maxLng,
+        // Same scoping rule as getReports(): staff only ever see their own
+        // department's pins, never every department's.
+        Long departmentId = currentUser.getRole() == RoleName.STAFF ? currentUser.getDepartmentId() : null;
+        List<Report> reports = reportRepository.findForMap(categoryId, status, departmentId, minLat, maxLat, minLng, maxLng,
                 restrictToPublic, HIDDEN_FROM_CITIZENS);
         return reportMapper.toMapDTOList(reports);
     }
@@ -288,7 +305,7 @@ public class ReportService {
     @Cacheable(CacheConfig.PUBLIC_MAP)
     @Transactional(readOnly = true)
     public List<ReportMapDTO> getApprovedMapReports() {
-        List<Report> reports = reportRepository.findForMap(null, null, null, null, null, null,
+        List<Report> reports = reportRepository.findForMap(null, null, null, null, null, null, null,
                 true, HIDDEN_FROM_CITIZENS);
         return reportMapper.toMapDTOList(reports);
     }

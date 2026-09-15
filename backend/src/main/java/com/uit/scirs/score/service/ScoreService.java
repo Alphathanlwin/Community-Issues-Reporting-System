@@ -13,6 +13,7 @@ import com.uit.scirs.score.repository.PointTransactionRepository;
 import com.uit.scirs.user.entity.RoleName;
 import com.uit.scirs.user.entity.User;
 import com.uit.scirs.user.repository.UserRepository;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -32,10 +33,12 @@ public class ScoreService {
 
     static {
         POINTS_BY_REASON.put(PointReason.REPORT_APPROVED, 10);
-        POINTS_BY_REASON.put(PointReason.REPORT_RESOLVED, 20);
+        POINTS_BY_REASON.put(PointReason.REPORT_RESOLVED, 25);
         POINTS_BY_REASON.put(PointReason.FEEDBACK_GIVEN, 5);
         POINTS_BY_REASON.put(PointReason.REPORT_REJECTED, -5);
         POINTS_BY_REASON.put(PointReason.CONFIRMATION_GIVEN, 3);
+        POINTS_BY_REASON.put(PointReason.SUPPORT_GIVEN, 5);
+        POINTS_BY_REASON.put(PointReason.SUPPORT_WITHDRAWN, -5);
     }
 
     private final PointTransactionRepository pointTransactionRepository;
@@ -56,6 +59,7 @@ public class ScoreService {
      * never double-awards.
      */
     @Transactional
+    @CacheEvict(value = CacheConfig.LEADERBOARD, allEntries = true)
     public void award(User user, PointReason reason, Report report) {
         Long reportId = report != null ? report.getId() : null;
         if (reportId != null
@@ -74,6 +78,32 @@ public class ScoreService {
 
         user.setScorePoints(user.getScorePoints() + points);
         userRepository.save(user);
+    }
+
+    /**
+     * Like {@link #award}, but WITHOUT the once-ever-per-(user,report,reason)
+     * guard — for actions that are legitimately repeatable (support a report,
+     * withdraw support, support it again later). The caller is responsible
+     * for its own rate limiting (see ReportSupportService's daily cap); every
+     * call here always records a transaction and moves the score.
+     *
+     * @return the user's new total score, for the caller's response DTO.
+     */
+    @Transactional
+    @CacheEvict(value = CacheConfig.LEADERBOARD, allEntries = true)
+    public int awardRepeatable(User user, PointReason reason, Report report) {
+        int points = POINTS_BY_REASON.get(reason);
+
+        PointTransaction transaction = new PointTransaction();
+        transaction.setUser(user);
+        transaction.setReport(report);
+        transaction.setPoints(points);
+        transaction.setReason(reason);
+        pointTransactionRepository.save(transaction);
+
+        user.setScorePoints(user.getScorePoints() + points);
+        userRepository.save(user);
+        return user.getScorePoints();
     }
 
     // Not user-scoped — every caller with leaderboard access sees the same

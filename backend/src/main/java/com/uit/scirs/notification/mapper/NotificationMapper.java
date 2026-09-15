@@ -16,6 +16,7 @@ public class NotificationMapper {
         dto.setTitle(entity.getTitle());
         dto.setMessage(entity.getMessage());
         dto.setRead(entity.isRead());
+        dto.setRating(entity.getRating());
         if (entity.getReport() != null) {
             dto.setReportId(entity.getReport().getId());
             dto.setReportCode(entity.getReport().getReportCode());

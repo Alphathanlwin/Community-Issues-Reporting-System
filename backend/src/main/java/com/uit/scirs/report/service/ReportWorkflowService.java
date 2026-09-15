@@ -101,7 +101,12 @@ public class ReportWorkflowService {
         User adminUser = findUser(admin.getId());
         ReportStatus oldStatus = report.getStatus();
 
-        report.setDepartment(report.getCategory().getDepartment());
+        // An admin may have already routed this to a specific department while
+        // it was still pending (see ReportAssignmentService#assign) — respect
+        // that instead of stomping it with the category's default routing.
+        if (report.getDepartment() == null) {
+            report.setDepartment(report.getCategory().getDepartment());
+        }
         report.setStatus(ReportStatus.ASSIGNED);
         report.setApprovedAt(LocalDateTime.now());
         report.setApprovedBy(adminUser);

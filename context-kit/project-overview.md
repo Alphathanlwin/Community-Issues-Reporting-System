@@ -130,7 +130,7 @@ Points are awarded automatically through `PointTransaction` rows so the leaderbo
 | Event | Points | Reason enum |
 |-------|--------|-------------|
 | Report approved by admin | +10 | `REPORT_APPROVED` |
-| Report resolved by staff | +20 | `REPORT_RESOLVED` |
+| Report resolved by staff | +25 | `REPORT_RESOLVED` |
 | Feedback submitted after resolution | +5 | `FEEDBACK_GIVEN` |
 | Report denied as invalid/spam | −5 | `REPORT_REJECTED` |
 | Citizen confirms an existing report is the same issue ("me too") | +3 | `CONFIRMATION_GIVEN` |

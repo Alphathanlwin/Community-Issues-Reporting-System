@@ -7,9 +7,11 @@ import com.uit.scirs.feedback.dto.FeedbackDTO;
 import com.uit.scirs.feedback.entity.Feedback;
 import com.uit.scirs.feedback.mapper.FeedbackMapper;
 import com.uit.scirs.feedback.repository.FeedbackRepository;
+import com.uit.scirs.notification.service.NotificationService;
 import com.uit.scirs.report.entity.Report;
 import com.uit.scirs.report.entity.ReportStatus;
 import com.uit.scirs.report.repository.ReportRepository;
+import com.uit.scirs.report.service.StatusHistoryService;
 import com.uit.scirs.score.entity.PointReason;
 import com.uit.scirs.score.service.ScoreService;
 import com.uit.scirs.user.entity.User;
@@ -23,6 +25,7 @@ import org.springframework.security.access.AccessDeniedException;
 
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -37,6 +40,8 @@ class FeedbackServiceTest {
     @Mock UserRepository userRepository;
     @Mock FeedbackMapper feedbackMapper;
     @Mock ScoreService scoreService;
+    @Mock StatusHistoryService statusHistoryService;
+    @Mock NotificationService notificationService;
     @InjectMocks FeedbackService feedbackService;
 
     @Test
@@ -83,10 +88,38 @@ class FeedbackServiceTest {
         when(userRepository.findById(7L)).thenReturn(Optional.of(citizen));
         when(feedbackRepository.save(any(Feedback.class))).thenAnswer(i -> i.getArgument(0));
         when(feedbackMapper.toDTO(any(Feedback.class))).thenReturn(new FeedbackDTO());
+        when(reportRepository.save(any(Report.class))).thenAnswer(i -> i.getArgument(0));
 
         feedbackService.create(feedbackDto(1L), 7L);
 
         verify(scoreService).award(citizen, PointReason.FEEDBACK_GIVEN, report);
+        // A resolved report is done once the citizen has weighed in.
+        assertThat(report.getStatus()).isEqualTo(ReportStatus.CLOSED);
+        verify(statusHistoryService).record(report, ReportStatus.RESOLVED, ReportStatus.CLOSED, citizen,
+                "Closed after citizen feedback.");
+        verify(notificationService).notifyStatusChange(report, 5);
+    }
+
+    @Test
+    void create_onAlreadyClosedReport_leavesStatusAloneButNotifiesStaffOfFeedback() {
+        Report report = report(1L, ReportStatus.CLOSED, 7L);
+        User citizen = report.getReporter();
+
+        when(reportRepository.findById(1L)).thenReturn(Optional.of(report));
+        when(feedbackRepository.existsByReportId(1L)).thenReturn(false);
+        when(userRepository.findById(7L)).thenReturn(Optional.of(citizen));
+        when(feedbackRepository.save(any(Feedback.class))).thenAnswer(i -> i.getArgument(0));
+        when(feedbackMapper.toDTO(any(Feedback.class))).thenReturn(new FeedbackDTO());
+
+        feedbackService.create(feedbackDto(1L), 7L);
+
+        assertThat(report.getStatus()).isEqualTo(ReportStatus.CLOSED);
+        verify(reportRepository, never()).save(any(Report.class));
+        verify(notificationService, never()).notifyStatusChange(any());
+        verify(notificationService, never()).notifyStatusChange(any(), any());
+        // Staff closed it without waiting for feedback — the department still needs
+        // to hear about the rating that just came in.
+        verify(notificationService).notifyFeedbackReceived(report, 5, "Fixed quickly, thank you!");
     }
 
     private Report report(Long id, ReportStatus status, Long reporterId) {

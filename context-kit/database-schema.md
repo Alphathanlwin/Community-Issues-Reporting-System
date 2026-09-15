@@ -235,12 +235,13 @@ Service rules: `citizen_id` must equal `report.reporter_id`; report status must 
 | type | VARCHAR (Enum → `NotificationType`) | NOT NULL |
 | title | VARCHAR | NOT NULL |
 | message | VARCHAR | NOT NULL |
+| rating | INTEGER | nullable — the 1-5 star rating, set only on feedback-related notifications |
 | is_read | BOOLEAN | NOT NULL, default false |
 | created_at | TIMESTAMP | NOT NULL |
 
 **Enum: `NotificationType`** — `NEW_REPORT`, `URGENT_REPORT`, `REPORT_WAITING_TOO_LONG`, `DEPARTMENT_MENTION`, `STATUS_CHANGED`, `REPORT_APPROVED`, `REPORT_REJECTED`, `REPORT_COMPLETED`, `ACCOUNT_APPROVED`, `ACCOUNT_REJECTED`
 
-Recipient rules: citizens receive status/account notifications about their own records; staff receive `NEW_REPORT`, `URGENT_REPORT`, `REPORT_WAITING_TOO_LONG`, and `DEPARTMENT_MENTION` for their own department; admins receive new-report and new-account notifications.
+Recipient rules: citizens receive status/account notifications about their own records; staff receive `NEW_REPORT`, `URGENT_REPORT`, `REPORT_WAITING_TOO_LONG`, and `DEPARTMENT_MENTION` for their own department; admins receive new-report and new-account notifications. When a citizen leaves feedback on a resolved report, both the reporter and the department's staff are notified (`rating` populated on both); if staff had already closed the report before feedback arrived, only the department staff get a "New feedback received" notification (the status doesn't change again).
 
 ---
 
@@ -257,7 +258,7 @@ Immutable ledger backing the leaderboard.
 | reason | VARCHAR (Enum → `PointReason`) | NOT NULL |
 | created_at | TIMESTAMP | NOT NULL |
 
-**Enum: `PointReason`** — `REPORT_APPROVED` (+10), `REPORT_RESOLVED` (+20), `FEEDBACK_GIVEN` (+5), `REPORT_REJECTED` (−5), `CONFIRMATION_GIVEN` (+3)
+**Enum: `PointReason`** — `REPORT_APPROVED` (+10), `REPORT_RESOLVED` (+25), `FEEDBACK_GIVEN` (+5), `REPORT_REJECTED` (−5), `CONFIRMATION_GIVEN` (+3)
 
 Rule: a `(user_id, report_id, reason)` triple must be unique — never award the same event twice.
 

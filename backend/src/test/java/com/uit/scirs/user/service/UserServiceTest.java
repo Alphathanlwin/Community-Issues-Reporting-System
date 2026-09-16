@@ -184,6 +184,30 @@ class UserServiceTest {
     }
 
     @Test
+    void reactivate_withSuspendedAccount_setsStatusApproved() {
+        User citizen = citizen(1L, AccountStatus.SUSPENDED);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(citizen));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+        when(userMapper.toDTO(any(User.class))).thenAnswer(i -> dtoFor(i.getArgument(0)));
+
+        UserDTO result = userService.reactivate(1L);
+
+        assertThat(result.getAccountStatus()).isEqualTo("APPROVED");
+        verify(notificationService).notifyAccountApproved(citizen);
+    }
+
+    @Test
+    void reactivate_withApprovedAccount_throwsBusinessRuleException() {
+        User citizen = citizen(1L, AccountStatus.APPROVED);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(citizen));
+
+        assertThatThrownBy(() -> userService.reactivate(1L))
+                .isInstanceOf(BusinessRuleException.class);
+
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
     void delete_setsActiveFalseInsteadOfRemovingRow() {
         User citizen = citizen(1L, AccountStatus.APPROVED);
         when(userRepository.findById(1L)).thenReturn(Optional.of(citizen));

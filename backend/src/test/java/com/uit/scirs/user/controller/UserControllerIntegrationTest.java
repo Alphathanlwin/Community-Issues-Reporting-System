@@ -179,6 +179,17 @@ class UserControllerIntegrationTest {
     }
 
     @Test
+    void reactivate_suspendedCitizen_returns200WithApprovedStatus() throws Exception {
+        String adminToken = adminToken();
+        User suspended = persistCitizen("toreactivate@example.com", AccountStatus.SUSPENDED);
+
+        mockMvc.perform(patch("/api/users/" + suspended.getId() + "/reactivate")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accountStatus").value("APPROVED"));
+    }
+
+    @Test
     void getById_selfAccess_returns200() throws Exception {
         User citizen = persistCitizen("self@example.com", AccountStatus.APPROVED);
         String token = jwtUtil.generateToken(citizen.getId(), citizen.getEmail(), RoleName.CITIZEN.name(), null);

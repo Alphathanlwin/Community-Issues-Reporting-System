@@ -27,6 +27,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByRoleNameAndAccountStatus(RoleName roleName, AccountStatus accountStatus);
 
+    List<User> findByRoleNameAndAccountStatusIn(RoleName roleName, List<AccountStatus> accountStatuses);
+
     List<User> findByDepartmentId(Long departmentId);
 
     List<User> findTop10ByRoleNameOrderByCreatedAtDesc(RoleName roleName);
@@ -36,6 +38,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     long countByAccountStatus(AccountStatus accountStatus);
 
     long countByRoleName(RoleName roleName);
+
+    long countByRoleNameAndAccountStatusIn(RoleName roleName, List<AccountStatus> accountStatuses);
 
     // Leaderboard ranking: highest score first, ties broken by earliest join date.
     List<User> findByRoleNameOrderByScorePointsDescCreatedAtAsc(RoleName roleName, Pageable pageable);

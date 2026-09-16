@@ -71,9 +71,19 @@ public class UserService {
         return userMapper.toDTOList(users);
     }
 
+    // A citizen row only ever represents someone whose signup was approved at
+    // some point (APPROVED or later SUSPENDED) — PENDING accounts are still
+    // awaiting a decision in the approvals queue, and REJECTED ones never
+    // became citizens, so neither should be counted or listed here by default.
+    private static final List<AccountStatus> APPROVED_CITIZEN_STATUSES =
+            List.of(AccountStatus.APPROVED, AccountStatus.SUSPENDED);
+
     @Transactional(readOnly = true)
-    public List<UserDTO> getCitizens() {
-        return userMapper.toDTOList(userRepository.findByRoleName(RoleName.CITIZEN));
+    public List<UserDTO> getCitizens(AccountStatus accountStatus) {
+        List<User> users = accountStatus != null
+                ? userRepository.findByRoleNameAndAccountStatus(RoleName.CITIZEN, accountStatus)
+                : userRepository.findByRoleNameAndAccountStatusIn(RoleName.CITIZEN, APPROVED_CITIZEN_STATUSES);
+        return userMapper.toDTOList(users);
     }
 
     @Transactional(readOnly = true)
@@ -182,6 +192,20 @@ public class UserService {
         User saved = userRepository.save(user);
         auditService.record(AuditAction.USER_SUSPENDED, "USER", saved.getId(), accountLabel(saved),
                 "APPROVED → SUSPENDED");
+        return userMapper.toDTO(saved);
+    }
+
+    @Transactional
+    public UserDTO reactivate(Long id) {
+        User user = findEntity(id);
+        if (user.getAccountStatus() != AccountStatus.SUSPENDED) {
+            throw new BusinessRuleException("Only suspended accounts can be reactivated");
+        }
+        user.setAccountStatus(AccountStatus.APPROVED);
+        User saved = userRepository.save(user);
+        notificationService.notifyAccountApproved(saved);
+        auditService.record(AuditAction.USER_REACTIVATED, "USER", saved.getId(), accountLabel(saved),
+                "SUSPENDED → APPROVED");
         return userMapper.toDTO(saved);
     }
 

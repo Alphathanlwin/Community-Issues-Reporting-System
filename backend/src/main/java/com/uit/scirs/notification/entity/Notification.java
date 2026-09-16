@@ -33,6 +33,13 @@ public class Notification {
     @JoinColumn(name = "report_id")
     private Report report;
 
+    // The user this notification is about but isn't necessarily addressed to —
+    // e.g. the citizen who just registered, for the admin's NEW_ACCOUNT
+    // notification — so the console can link straight to their account page.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subject_user_id")
+    private User subjectUser;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private NotificationType type;
@@ -85,6 +92,14 @@ public class Notification {
 
     public void setReport(Report report) {
         this.report = report;
+    }
+
+    public User getSubjectUser() {
+        return subjectUser;
+    }
+
+    public void setSubjectUser(User subjectUser) {
+        this.subjectUser = subjectUser;
     }
 
     public NotificationType getType() {

@@ -21,6 +21,9 @@ public class NotificationMapper {
             dto.setReportId(entity.getReport().getId());
             dto.setReportCode(entity.getReport().getReportCode());
         }
+        if (entity.getSubjectUser() != null) {
+            dto.setSubjectUserId(entity.getSubjectUser().getId());
+        }
         dto.setCreatedAt(entity.getCreatedAt());
         return dto;
     }

@@ -113,7 +113,7 @@ public class NotificationService {
         String title = "New account awaiting approval";
         String message = citizen.getFullName() + " registered a new citizen account and is awaiting approval.";
         userRepository.findByRoleName(RoleName.ADMIN)
-                .forEach(admin -> create(admin, null, NotificationType.NEW_ACCOUNT, title, message));
+                .forEach(admin -> create(admin, null, NotificationType.NEW_ACCOUNT, title, message, null, citizen));
     }
 
     @Transactional
@@ -164,11 +164,16 @@ public class NotificationService {
     }
 
     private void create(User recipient, Report report, NotificationType type, String title, String message) {
-        create(recipient, report, type, title, message, null);
+        create(recipient, report, type, title, message, null, null);
     }
 
     private void create(User recipient, Report report, NotificationType type, String title, String message,
                          Integer rating) {
+        create(recipient, report, type, title, message, rating, null);
+    }
+
+    private void create(User recipient, Report report, NotificationType type, String title, String message,
+                         Integer rating, User subjectUser) {
         Notification notification = new Notification();
         notification.setRecipient(recipient);
         notification.setReport(report);
@@ -176,6 +181,7 @@ public class NotificationService {
         notification.setTitle(title);
         notification.setMessage(message);
         notification.setRating(rating);
+        notification.setSubjectUser(subjectUser);
         notificationRepository.save(notification);
         emailService.send(recipient.getEmail(), title, message);
     }

@@ -78,7 +78,11 @@ public class DashboardService {
         AdminDashboardDTO dto = new AdminDashboardDTO();
         dto.setPendingAccountCount(userRepository.countByAccountStatus(AccountStatus.PENDING));
         dto.setPendingReportCount(reportRepository.countByStatus(ReportStatus.PENDING_APPROVAL));
-        dto.setTotalCitizenCount(userRepository.countByRoleName(RoleName.CITIZEN));
+        // Matches UserService.getCitizens' default: only accounts that were
+        // actually approved (APPROVED or later SUSPENDED) count as citizens —
+        // PENDING signups aren't citizens yet and REJECTED ones never became one.
+        dto.setTotalCitizenCount(userRepository.countByRoleNameAndAccountStatusIn(
+                RoleName.CITIZEN, List.of(AccountStatus.APPROVED, AccountStatus.SUSPENDED)));
         dto.setTotalReportCount(reportRepository.count());
         dto.setTotalDepartmentCount(departmentRepository.count());
         dto.setTotalCategoryCount(categoryRepository.count());

@@ -132,6 +132,7 @@ Business rules:
 | `/api/users/{id}/approve` | PATCH | ADMIN | `accountStatus → APPROVED`, notify citizen |
 | `/api/users/{id}/reject` | PATCH | ADMIN | `accountStatus → REJECTED` + reason |
 | `/api/users/{id}/suspend` | PATCH | ADMIN | `accountStatus → SUSPENDED` |
+| `/api/users/{id}/reactivate` | PATCH | ADMIN | `accountStatus → APPROVED`, notify citizen |
 | `/api/users/{id}` | GET / PUT | ADMIN, self | View / update profile |
 | `/api/users/{id}` | DELETE | ADMIN | Soft delete (`isActive = false`) |
 
@@ -159,7 +160,7 @@ Always creates the account with `role = STAFF` and `accountStatus = APPROVED` im
 
 `reason` is required for validation but is not currently persisted on the `users` table (see `database-schema.md` — there is no `rejection_reason` column, unlike `reports`). It is captured in the request contract now so it is available once the Phase 7 `NotificationService` embeds it in the `ACCOUNT_REJECTED` notification message.
 
-`approve` / `reject` require the target account to currently be `PENDING`; `suspend` requires it to currently be `APPROVED`. Any other starting status returns `400 BusinessRuleException`.
+`approve` / `reject` require the target account to currently be `PENDING`; `suspend` requires it to currently be `APPROVED`; `reactivate` requires it to currently be `SUSPENDED`. Any other starting status returns `400 BusinessRuleException`.
 
 ### `PUT /api/users/{id}` — update own profile (ADMIN or self)
 
@@ -347,7 +348,7 @@ When `anonymous` is true, `reporterName` and `reporterAvatarUrl` are `null` — 
 | `/api/dashboard/categories` | GET | ADMIN, STAFF | Issue volume by category |
 | `/api/leaderboard` | GET | all | `[{ rank, userId, fullName, scorePoints }]`, default top 50 |
 | `/api/score/me` | GET | CITIZEN | Own total plus point history |
-| `/api/notifications` | GET | all | Own notifications, newest first |
+| `/api/notifications` | GET | all | Own notifications, newest first. `NEW_ACCOUNT` notifications carry `subjectUserId` (the newly registered citizen) so the console can link straight to `/admin/approvals/{subjectUserId}` |
 | `/api/notifications/unread-count` | GET | all | `{ "count": 3 }` |
 | `/api/notifications/{id}/read` | PATCH | owner | Mark one as read |
 | `/api/notifications/read-all` | PATCH | owner | Mark all as read |

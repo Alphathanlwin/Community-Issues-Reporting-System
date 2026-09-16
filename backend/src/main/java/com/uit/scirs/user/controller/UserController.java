@@ -47,8 +47,8 @@ public class UserController {
 
     @GetMapping("/citizens")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<UserDTO>> getCitizens() {
-        return ResponseEntity.ok(userService.getCitizens());
+    public ResponseEntity<List<UserDTO>> getCitizens(@RequestParam(required = false) AccountStatus accountStatus) {
+        return ResponseEntity.ok(userService.getCitizens(accountStatus));
     }
 
     @GetMapping("/staff")
@@ -86,6 +86,12 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserDTO> suspend(@PathVariable Long id) {
         return ResponseEntity.ok(userService.suspend(id));
+    }
+
+    @PatchMapping("/{id}/reactivate")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserDTO> reactivate(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.reactivate(id));
     }
 
     @GetMapping("/{id}")

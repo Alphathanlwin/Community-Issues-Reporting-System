@@ -59,7 +59,8 @@ class DashboardServiceTest {
     void getAdminDashboard_assemblesCountsAndRecentLists() {
         when(userRepository.countByAccountStatus(AccountStatus.PENDING)).thenReturn(4L);
         when(reportRepository.countByStatus(ReportStatus.PENDING_APPROVAL)).thenReturn(6L);
-        when(userRepository.countByRoleName(RoleName.CITIZEN)).thenReturn(42L);
+        when(userRepository.countByRoleNameAndAccountStatusIn(
+                RoleName.CITIZEN, List.of(AccountStatus.APPROVED, AccountStatus.SUSPENDED))).thenReturn(42L);
         when(reportRepository.count()).thenReturn(137L);
         User citizen = new User();
         when(userRepository.findTop10ByRoleNameAndAccountStatusOrderByCreatedAtDesc(

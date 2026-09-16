@@ -1,0 +1,5 @@
+>>backend server command
+
+$env:SPRING_PROFILES_ACTIVE = "local"
+mvn spring-boot:run
+

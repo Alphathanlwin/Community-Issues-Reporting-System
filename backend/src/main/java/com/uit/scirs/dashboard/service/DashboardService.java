@@ -110,7 +110,10 @@ public class DashboardService {
 
         StaffDashboardDTO dto = new StaffDashboardDTO();
         dto.setTotalReports(reportRepository.countByDepartmentAndStatusIn(departmentId, DEPARTMENT_SCOPED_STATUSES));
-        dto.setResolvedReports(reportRepository.countByDepartmentAndStatusIn(departmentId, RESOLVED_STATUSES));
+        // Just RESOLVED, not RESOLVED_STATUSES (which also includes CLOSED) — the
+        // card links to /staff/reports?status=RESOLVED, so its count must match
+        // what that drill-through actually lists.
+        dto.setResolvedReports(reportRepository.countByDepartmentAndStatusIn(departmentId, List.of(ReportStatus.RESOLVED)));
         dto.setRemainingReports(reportRepository.countByDepartmentAndStatusIn(departmentId, OPEN_STATUSES));
         dto.setNewReports(
                 reportRepository.countByDepartmentAndApprovedAtAfter(departmentId, LocalDate.now().atStartOfDay()));

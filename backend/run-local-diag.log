@@ -1787,3 +1787,11 @@ Hibernate:
         report_supports rs1_0 
     where
         rs1_0.report_id=?
+Hibernate: 
+    select
+        count(n1_0.id) 
+    from
+        notifications n1_0 
+    where
+        n1_0.recipient_id=? 
+        and not(n1_0.is_read)

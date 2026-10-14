@@ -1,5 +1,6 @@
 package com.uit.scirs.report.mapper;
 
+import com.uit.scirs.feedback.entity.Feedback;
 import com.uit.scirs.feedback.mapper.FeedbackMapper;
 import com.uit.scirs.feedback.repository.FeedbackRepository;
 import com.uit.scirs.report.dto.CreateReportDTO;
@@ -55,6 +56,14 @@ public class ReportMapper {
     }
 
     public ReportDTO toDTO(Report entity) {
+        Feedback feedback = null;
+        if (FEEDBACK_ELIGIBLE_STATUSES.contains(entity.getStatus())) {
+            feedback = feedbackRepository.findByReportId(entity.getId()).orElse(null);
+        }
+        return toDTO(entity, feedback);
+    }
+
+    public ReportDTO toDTO(Report entity, Feedback feedback) {
         ReportDTO dto = new ReportDTO();
         dto.setId(entity.getId());
         dto.setReportCode(entity.getReportCode());
@@ -98,16 +107,26 @@ public class ReportMapper {
         dto.setImages(entity.getImages().stream().map(this::toImageDTO).toList());
         dto.setCreatedAt(entity.getCreatedAt());
 
-        if (FEEDBACK_ELIGIBLE_STATUSES.contains(entity.getStatus())) {
-            feedbackRepository.findByReportId(entity.getId())
-                    .ifPresent(feedback -> dto.setFeedback(feedbackMapper.toDTO(feedback)));
+        if (feedback != null) {
+            dto.setFeedback(feedbackMapper.toDTO(feedback));
         }
 
         return dto;
     }
 
     public List<ReportDTO> toDTOList(List<Report> entities) {
-        return entities.stream().map(this::toDTO).toList();
+        if (entities == null || entities.isEmpty()) {
+            return java.util.List.of();
+        }
+        List<Long> eligibleIds = entities.stream()
+                .filter(r -> FEEDBACK_ELIGIBLE_STATUSES.contains(r.getStatus()))
+                .map(Report::getId)
+                .toList();
+        java.util.Map<Long, Feedback> feedbackMap = eligibleIds.isEmpty() ? java.util.Map.of() :
+                feedbackRepository.findByReportIdIn(eligibleIds).stream()
+                        .collect(java.util.stream.Collectors.toMap(f -> f.getReport().getId(), f -> f, (a, b) -> a));
+
+        return entities.stream().map(r -> toDTO(r, feedbackMap.get(r.getId()))).toList();
     }
 
     public ReportStatusHistoryDTO toHistoryDTO(ReportStatusHistory entity) {
@@ -129,6 +148,10 @@ public class ReportMapper {
     }
 
     public ReportMapDTO toMapDTO(Report entity) {
+        return toMapDTO(entity, reportSupportRepository.countByReportId(entity.getId()));
+    }
+
+    public ReportMapDTO toMapDTO(Report entity, long supportCount) {
         ReportMapDTO dto = new ReportMapDTO();
         dto.setId(entity.getId());
         dto.setReportCode(entity.getReportCode());
@@ -148,12 +171,21 @@ public class ReportMapper {
             dto.setReporterName(entity.getReporter().getFullName());
         }
         dto.setCreatedAt(entity.getCreatedAt());
-        dto.setSupportCount(reportSupportRepository.countByReportId(entity.getId()));
+        dto.setSupportCount(supportCount);
         return dto;
     }
 
     public List<ReportMapDTO> toMapDTOList(List<Report> entities) {
-        return entities.stream().map(this::toMapDTO).toList();
+        if (entities == null || entities.isEmpty()) {
+            return java.util.List.of();
+        }
+        List<Long> ids = entities.stream().map(Report::getId).toList();
+        java.util.Map<Long, Long> supportCounts = reportSupportRepository.countByReportIdIn(ids).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        com.uit.scirs.report.repository.ReportSupportCountProjection::getReportId,
+                        com.uit.scirs.report.repository.ReportSupportCountProjection::getCount));
+
+        return entities.stream().map(r -> toMapDTO(r, supportCounts.getOrDefault(r.getId(), 0L))).toList();
     }
 
     /**

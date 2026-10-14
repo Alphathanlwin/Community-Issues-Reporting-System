@@ -97,15 +97,15 @@ class ReportWorkflowControllerIntegrationTest {
                         .content("{\"reportId\":" + report.getId() + ",\"rating\":5,\"comment\":\"Great job!\"}"))
                 .andExpect(status().isCreated());
 
-        // Reporter's score reflects +10 (approved) + 20 (resolved) + 5 (feedback) = 35.
+        // Reporter's score reflects +10 (approved) + 25 (resolved) + 5 (feedback) = 40.
         mockMvc.perform(get("/api/score/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + citizenToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalPoints").value(35));
+                .andExpect(jsonPath("$.totalPoints").value(40));
 
         // The reporter should have received a notification for each status change.
         mockMvc.perform(get("/api/notifications/unread-count").header(HttpHeaders.AUTHORIZATION, "Bearer " + citizenToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.count").value(3));
+                .andExpect(jsonPath("$.count").value(4));
     }
 
     @Test

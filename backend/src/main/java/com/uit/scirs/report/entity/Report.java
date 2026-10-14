@@ -98,6 +98,7 @@ public class Report {
     @Column(name = "rejection_reason")
     private String rejectionReason;
 
+    @org.hibernate.annotations.BatchSize(size = 50)
     @OneToMany(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReportImage> images = new ArrayList<>();
 

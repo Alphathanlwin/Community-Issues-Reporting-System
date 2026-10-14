@@ -18,14 +18,21 @@ import java.util.Optional;
 @Repository
 public interface ReportRepository extends JpaRepository<Report, Long> {
 
+    @Override
+    @EntityGraph(attributePaths = {"category", "department", "reporter", "assignedStaff"})
+    Optional<Report> findById(Long id);
+
     Optional<Report> findByReportCode(String reportCode);
 
     boolean existsByReportCode(String reportCode);
 
+    @EntityGraph(attributePaths = {"category", "department", "reporter", "assignedStaff"})
     List<Report> findByReporterIdOrderByCreatedAtDesc(Long reporterId);
 
+    @EntityGraph(attributePaths = {"category", "department", "reporter", "assignedStaff"})
     List<Report> findByStatusOrderByCreatedAtDesc(ReportStatus status);
 
+    @EntityGraph(attributePaths = {"category", "department", "reporter", "assignedStaff"})
     List<Report> findTop10ByStatusOrderByCreatedAtDesc(ReportStatus status);
 
     long countByStatus(ReportStatus status);
@@ -41,6 +48,7 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
 
     // Optional filters: any null parameter is skipped. Staff scoping is
     // enforced by the service always supplying its own departmentId.
+    @EntityGraph(attributePaths = {"category", "department", "reporter", "assignedStaff"})
     @Query("""
            SELECT r FROM Report r
            WHERE (:status IS NULL OR r.status = :status)
@@ -64,6 +72,7 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
     // "cannot cast type bytea to timestamp"). H2 tolerates it, so the failure
     // only appears against PostgreSQL. `searchPattern` is pre-lowercased and
     // already wrapped in '%'.
+    @EntityGraph(attributePaths = {"category", "department", "reporter", "assignedStaff"})
     @Query("""
            SELECT r FROM Report r
            WHERE (:status IS NULL OR r.status = :status)
@@ -87,6 +96,7 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
     // skipped when null. restrictToPublic=true (citizens) additionally
     // excludes hiddenStatuses. departmentId is only ever non-null when the
     // service supplies its own (STAFF scoping) — never a client-trusted value.
+    @EntityGraph(attributePaths = {"category", "reporter"})
     @Query("""
            SELECT r FROM Report r
            WHERE (:categoryId IS NULL OR r.category.id = :categoryId)

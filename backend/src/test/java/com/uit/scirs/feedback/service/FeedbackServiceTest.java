@@ -96,7 +96,7 @@ class FeedbackServiceTest {
         // A resolved report is done once the citizen has weighed in.
         assertThat(report.getStatus()).isEqualTo(ReportStatus.CLOSED);
         verify(statusHistoryService).record(report, ReportStatus.RESOLVED, ReportStatus.CLOSED, citizen,
-                "Closed after citizen feedback.");
+                "Closed after citizen feedback: \"Fixed quickly, thank you!\"");
         verify(notificationService).notifyStatusChange(report, 5);
     }
 

@@ -13,6 +13,8 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
 
     Optional<Feedback> findByReportId(Long reportId);
 
+    List<Feedback> findByReportIdIn(java.util.Collection<Long> reportIds);
+
     boolean existsByReportId(Long reportId);
 
     List<Feedback> findByCitizenId(Long citizenId);

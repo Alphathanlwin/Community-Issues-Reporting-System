@@ -273,9 +273,10 @@ public class ReportService {
         LocalDateTime from = startDate != null ? startDate.atStartOfDay() : LocalDateTime.of(1970, 1, 1, 0, 0);
         LocalDateTime to = endDate != null ? endDate.plusDays(1).atStartOfDay() : LocalDateTime.of(9999, 12, 31, 0, 0);
 
-        Page<ReportDTO> page = reportRepository
-                .searchReports(status, categoryId, effectiveDepartmentId, priority, searchPattern, from, to, pageable)
-                .map(reportMapper::toDTO);
+        Page<Report> reportPage = reportRepository
+                .searchReports(status, categoryId, effectiveDepartmentId, priority, searchPattern, from, to, pageable);
+        List<ReportDTO> dtos = reportMapper.toDTOList(reportPage.getContent());
+        Page<ReportDTO> page = new org.springframework.data.domain.PageImpl<>(dtos, pageable, reportPage.getTotalElements());
         return PageResponse.from(page);
     }
 

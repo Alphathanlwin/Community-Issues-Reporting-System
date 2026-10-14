@@ -107,6 +107,13 @@ public class ReportMapper {
         dto.setImages(entity.getImages().stream().map(this::toImageDTO).toList());
         dto.setCreatedAt(entity.getCreatedAt());
 
+        dto.setAiConfidenceScore(entity.getAiConfidenceScore());
+        dto.setAiTriageDecision(entity.getAiTriageDecision() != null ? entity.getAiTriageDecision().name() : null);
+        dto.setAiImageQuality(entity.getAiImageQuality() != null ? entity.getAiImageQuality().name() : null);
+        dto.setAiReasoning(entity.getAiReasoning());
+        dto.setAiFlags(entity.getAiFlags());
+        dto.setAiTriaged(entity.isAiTriaged());
+
         if (feedback != null) {
             dto.setFeedback(feedbackMapper.toDTO(feedback));
         }

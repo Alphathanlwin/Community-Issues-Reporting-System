@@ -141,6 +141,28 @@ class ReportWorkflowControllerIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void overrideAiDecision_byAdmin_reroutesDepartmentAndSetsDecisionOverridden() throws Exception {
+        User citizen = persistCitizen("wf-citizen-override@example.com");
+        Category category = categoryRepository.findByName("Pothole / Damaged Road Surface").orElseThrow();
+        Long waterDeptId = departmentRepository.findByName("Water & Sanitation Department").orElseThrow().getId();
+        Report report = persistPendingReport(citizen, category);
+        report.setAiConfidenceScore(75);
+        report.setAiTriageDecision(com.uit.scirs.report.entity.AiTriageDecision.FLAGGED_FOR_REVIEW);
+        report.setAiReasoning("Held for verification");
+        report = reportRepository.save(report);
+
+        String adminToken = token(adminUser(), RoleName.ADMIN, null);
+        mockMvc.perform(patch("/api/reports/" + report.getId() + "/ai-override")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType("application/json")
+                        .content("{\"newDepartmentId\":" + waterDeptId + ",\"reason\":\"Actual issue is water pipe leak underneath the asphalt\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ASSIGNED"))
+                .andExpect(jsonPath("$.departmentId").value(waterDeptId))
+                .andExpect(jsonPath("$.aiTriageDecision").value("MANUALLY_OVERRIDDEN"));
+    }
+
     private Report persistPendingReport(User citizen, Category category) {
         Report report = new Report();
         report.setReportCode("RPT-TEST-" + System.nanoTime());

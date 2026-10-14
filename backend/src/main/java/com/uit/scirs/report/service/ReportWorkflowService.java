@@ -8,9 +8,14 @@ import com.uit.scirs.common.exception.InvalidStatusTransitionException;
 import com.uit.scirs.common.exception.ResourceNotFoundException;
 import com.uit.scirs.common.security.CurrentUser;
 import com.uit.scirs.notification.service.NotificationService;
+import com.uit.scirs.department.entity.Department;
+import com.uit.scirs.department.repository.DepartmentRepository;
+import com.uit.scirs.report.dto.AiTriageResultDTO;
+import com.uit.scirs.report.dto.OverrideAiDecisionDTO;
 import com.uit.scirs.report.dto.ReportDTO;
 import com.uit.scirs.report.dto.UpdateReportPriorityDTO;
 import com.uit.scirs.report.dto.UpdateReportStatusDTO;
+import com.uit.scirs.report.entity.AiTriageDecision;
 import com.uit.scirs.report.entity.ImageType;
 import com.uit.scirs.report.entity.Report;
 import com.uit.scirs.report.entity.ReportPriority;
@@ -59,6 +64,7 @@ public class ReportWorkflowService {
     private final NotificationService notificationService;
     private final PriorityService priorityService;
     private final AuditService auditService;
+    private final DepartmentRepository departmentRepository;
 
     public ReportWorkflowService(ReportRepository reportRepository,
                                   ReportImageRepository reportImageRepository,
@@ -68,7 +74,8 @@ public class ReportWorkflowService {
                                   ScoreService scoreService,
                                   NotificationService notificationService,
                                   PriorityService priorityService,
-                                  AuditService auditService) {
+                                  AuditService auditService,
+                                  DepartmentRepository departmentRepository) {
         this.reportRepository = reportRepository;
         this.reportImageRepository = reportImageRepository;
         this.userRepository = userRepository;
@@ -78,6 +85,7 @@ public class ReportWorkflowService {
         this.notificationService = notificationService;
         this.priorityService = priorityService;
         this.auditService = auditService;
+        this.departmentRepository = departmentRepository;
     }
 
     /** "RPT-2026-0007 — Broken streetlight" — the target snapshot used in the audit trail. */
@@ -221,6 +229,101 @@ public class ReportWorkflowService {
         Report saved = reportRepository.save(report);
         auditService.record(AuditAction.REPORT_PRIORITY_CHANGED, "REPORT", saved.getId(), reportLabel(saved),
                 (oldPriority != null ? oldPriority : "—") + " → " + newPriority);
+        return reportMapper.toDTO(saved);
+    }
+
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.PUBLIC_MAP, allEntries = true),
+            @CacheEvict(value = CacheConfig.DEPT_STATS, allEntries = true)
+    })
+    @Transactional
+    public ReportDTO autoApproveByAi(Report report, AiTriageResultDTO aiResult) {
+        if (report.getStatus() != ReportStatus.PENDING_APPROVAL) {
+            return reportMapper.toDTO(report);
+        }
+
+        ReportStatus oldStatus = report.getStatus();
+        if (report.getDepartment() == null && report.getCategory() != null) {
+            report.setDepartment(report.getCategory().getDepartment());
+        }
+        report.setStatus(ReportStatus.ASSIGNED);
+        report.setApprovedAt(LocalDateTime.now());
+        report.setAiConfidenceScore(aiResult.getConfidenceScore());
+        report.setAiTriageDecision(AiTriageDecision.AUTO_ROUTED);
+        report.setAiImageQuality(aiResult.getImageQuality());
+        report.setAiReasoning(aiResult.getReasoning());
+        report.setAiFlags(String.join(",", aiResult.getFlags()));
+        report.setAiTriaged(true);
+
+        PriorityService.PriorityResult priorityResult =
+                priorityService.calculate(report.getCategory(), 0, report.getCreatedAt());
+        report.setPriority(priorityResult.priority());
+        report.setPriorityScore(priorityResult.score());
+
+        Report saved = reportRepository.save(report);
+        statusHistoryService.record(saved, oldStatus, ReportStatus.ASSIGNED, null,
+                "Auto-approved & routed by AI Triage Engine (" + aiResult.getConfidenceScore() + "% confidence)");
+        scoreService.award(saved.getReporter(), PointReason.REPORT_APPROVED, saved);
+        notificationService.notifyStatusChange(saved);
+        auditService.record(AuditAction.AI_AUTO_TRIAGED, "REPORT", saved.getId(), reportLabel(saved),
+                "Auto-routed to " + (saved.getDepartment() != null ? saved.getDepartment().getName() : "Department")
+                        + " · Confidence: " + aiResult.getConfidenceScore() + "% · " + aiResult.getReasoning());
+
+        return reportMapper.toDTO(saved);
+    }
+
+    @Transactional
+    public ReportDTO recordAiTriageAssessment(Report report, AiTriageResultDTO aiResult) {
+        report.setAiConfidenceScore(aiResult.getConfidenceScore());
+        report.setAiTriageDecision(aiResult.getDecision());
+        report.setAiImageQuality(aiResult.getImageQuality());
+        report.setAiReasoning(aiResult.getReasoning());
+        report.setAiFlags(String.join(",", aiResult.getFlags()));
+        report.setAiTriaged(true);
+        Report saved = reportRepository.save(report);
+        return reportMapper.toDTO(saved);
+    }
+
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.PUBLIC_MAP, allEntries = true),
+            @CacheEvict(value = CacheConfig.DEPT_STATS, allEntries = true)
+    })
+    @Transactional
+    public ReportDTO overrideAiDecision(Long reportId, OverrideAiDecisionDTO dto, CurrentUser admin) {
+        Report report = findEntity(reportId);
+        Department newDept = departmentRepository.findById(dto.getNewDepartmentId())
+                .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + dto.getNewDepartmentId()));
+        if (!newDept.isActive()) {
+            throw new BusinessRuleException("Cannot reassign to an inactive department.");
+        }
+
+        Department oldDept = report.getDepartment();
+        report.setDepartment(newDept);
+        report.setAiTriageDecision(AiTriageDecision.MANUALLY_OVERRIDDEN);
+
+        User adminUser = findUser(admin.getId());
+        ReportStatus oldStatus = report.getStatus();
+
+        if (report.getStatus() == ReportStatus.PENDING_APPROVAL) {
+            report.setStatus(ReportStatus.ASSIGNED);
+            report.setApprovedAt(LocalDateTime.now());
+            report.setApprovedBy(adminUser);
+            PriorityService.PriorityResult priorityResult =
+                    priorityService.calculate(report.getCategory(), 0, report.getCreatedAt());
+            report.setPriority(priorityResult.priority());
+            report.setPriorityScore(priorityResult.score());
+            scoreService.award(report.getReporter(), PointReason.REPORT_APPROVED, report);
+            notificationService.notifyStatusChange(report);
+        }
+
+        Report saved = reportRepository.save(report);
+
+        String remarks = "AI routing overridden by " + adminUser.getFullName() + ": " + dto.getReason()
+                + " (Rerouted from " + (oldDept != null ? oldDept.getName() : "Pending") + " to " + newDept.getName() + ")";
+        statusHistoryService.record(saved, oldStatus, saved.getStatus(), adminUser, remarks);
+
+        auditService.record(AuditAction.AI_ROUTING_OVERRIDDEN, "REPORT", saved.getId(), reportLabel(saved), remarks);
+
         return reportMapper.toDTO(saved);
     }
 

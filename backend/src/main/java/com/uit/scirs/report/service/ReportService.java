@@ -11,6 +11,8 @@ import com.uit.scirs.common.dto.PageResponse;
 import com.uit.scirs.common.security.CurrentUser;
 import com.uit.scirs.common.util.ReportCodeGenerator;
 import com.uit.scirs.notification.service.NotificationService;
+import com.uit.scirs.report.dto.AiTriageResultDTO;
+import com.uit.scirs.report.entity.AiTriageDecision;
 import com.uit.scirs.report.dto.CreateReportDTO;
 import com.uit.scirs.report.dto.DuplicateCheckResultDTO;
 import com.uit.scirs.report.dto.PossibleDuplicateDTO;
@@ -75,6 +77,8 @@ public class ReportService {
     private final DuplicateDetectionService duplicateDetectionService;
     private final ScoreService scoreService;
     private final Long slaWaitingTooLongHours;
+    private final AiTriageService aiTriageService;
+    private final ReportWorkflowService reportWorkflowService;
 
     public ReportService(ReportRepository reportRepository,
                           ReportStatusHistoryRepository reportStatusHistoryRepository,
@@ -87,7 +91,9 @@ public class ReportService {
                           NotificationService notificationService,
                           DuplicateDetectionService duplicateDetectionService,
                           ScoreService scoreService,
-                          @Value("${app.sla.waiting-too-long-hours:48}") Long slaWaitingTooLongHours) {
+                          @Value("${app.sla.waiting-too-long-hours:48}") Long slaWaitingTooLongHours,
+                          AiTriageService aiTriageService,
+                          @org.springframework.context.annotation.Lazy ReportWorkflowService reportWorkflowService) {
         this.reportRepository = reportRepository;
         this.reportStatusHistoryRepository = reportStatusHistoryRepository;
         this.reportConfirmationRepository = reportConfirmationRepository;
@@ -100,6 +106,8 @@ public class ReportService {
         this.duplicateDetectionService = duplicateDetectionService;
         this.scoreService = scoreService;
         this.slaWaitingTooLongHours = slaWaitingTooLongHours;
+        this.aiTriageService = aiTriageService;
+        this.reportWorkflowService = reportWorkflowService;
     }
 
     /**
@@ -207,6 +215,18 @@ public class ReportService {
         submittedEntry.setNewStatus(ReportStatus.PENDING_APPROVAL);
         submittedEntry.setChangedBy(citizen);
         reportStatusHistoryRepository.save(submittedEntry);
+
+        // AI Vision & Auto-Triage Engine evaluation
+        if (aiTriageService != null) {
+            AiTriageResultDTO aiResult = aiTriageService.evaluate(saved, images);
+            if (aiResult != null) {
+                if (aiResult.getDecision() == AiTriageDecision.AUTO_ROUTED && reportWorkflowService != null) {
+                    return reportWorkflowService.autoApproveByAi(saved, aiResult);
+                } else if (reportWorkflowService != null) {
+                    reportWorkflowService.recordAiTriageAssessment(saved, aiResult);
+                }
+            }
+        }
 
         notificationService.notifyNewReport(saved);
         return reportMapper.toDTO(saved);

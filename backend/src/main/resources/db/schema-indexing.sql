@@ -41,3 +41,8 @@ CREATE INDEX IF NOT EXISTS idx_status_history_report
 -- Citizen score history / leaderboard point-transaction lookups.
 CREATE INDEX IF NOT EXISTS idx_point_tx_user
     ON point_transactions (user_id);
+
+-- AI auto-triage and review queues filtering
+CREATE INDEX IF NOT EXISTS idx_reports_ai_triage
+    ON reports (ai_triage_decision);
+

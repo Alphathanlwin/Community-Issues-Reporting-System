@@ -42,6 +42,13 @@ public class ReportDTO {
     // citizen on their own report detail.
     private FeedbackDTO feedback;
 
+    private Integer aiConfidenceScore;
+    private String aiTriageDecision;
+    private String aiImageQuality;
+    private String aiReasoning;
+    private String aiFlags;
+    private boolean aiTriaged;
+
     public Long getId() {
         return id;
     }
@@ -248,5 +255,53 @@ public class ReportDTO {
 
     public void setFeedback(FeedbackDTO feedback) {
         this.feedback = feedback;
+    }
+
+    public Integer getAiConfidenceScore() {
+        return aiConfidenceScore;
+    }
+
+    public void setAiConfidenceScore(Integer aiConfidenceScore) {
+        this.aiConfidenceScore = aiConfidenceScore;
+    }
+
+    public String getAiTriageDecision() {
+        return aiTriageDecision;
+    }
+
+    public void setAiTriageDecision(String aiTriageDecision) {
+        this.aiTriageDecision = aiTriageDecision;
+    }
+
+    public String getAiImageQuality() {
+        return aiImageQuality;
+    }
+
+    public void setAiImageQuality(String aiImageQuality) {
+        this.aiImageQuality = aiImageQuality;
+    }
+
+    public String getAiReasoning() {
+        return aiReasoning;
+    }
+
+    public void setAiReasoning(String aiReasoning) {
+        this.aiReasoning = aiReasoning;
+    }
+
+    public String getAiFlags() {
+        return aiFlags;
+    }
+
+    public void setAiFlags(String aiFlags) {
+        this.aiFlags = aiFlags;
+    }
+
+    public boolean isAiTriaged() {
+        return aiTriaged;
+    }
+
+    public void setAiTriaged(boolean aiTriaged) {
+        this.aiTriaged = aiTriaged;
     }
 }

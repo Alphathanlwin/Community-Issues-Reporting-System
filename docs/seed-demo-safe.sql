@@ -282,6 +282,50 @@ WHERE u.email LIKE 'demo.citizen%@demo.scirs.gov';
 
 
 -- ----------------------------------------------------------------------------
+-- 4b. ENRICH DEMO REPORTS WITH AI TRIAGE & IMAGE ANALYSIS METADATA
+-- ----------------------------------------------------------------------------
+-- Auto-routed fast-track reports
+UPDATE reports
+SET ai_confidence_score = 92,
+    ai_triage_decision = 'AUTO_ROUTED',
+    ai_image_quality = 'CLEAR',
+    ai_flags = 'VERIFIED_INCIDENT,AUTO_ROUTED_FAST_TRACK',
+    ai_reasoning = 'Clear scene photo verified with high descriptive relevance to category (92% confidence). Auto-approved and routed directly to department for field assignment.',
+    is_ai_triaged = true
+WHERE status IN ('ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED')
+  AND (ai_triage_decision IS NULL OR ai_triage_decision = '');
+
+-- Flagged for Review: Blurry image in pending approval
+UPDATE reports
+SET ai_confidence_score = 56,
+    ai_triage_decision = 'FLAGGED_FOR_REVIEW',
+    ai_image_quality = 'BLURRY',
+    ai_flags = 'BLURRY_PHOTO',
+    ai_reasoning = 'Photo appears blurry, underexposed, or lacking clear focus. Flagged for admin verification to ensure issue is actionable.',
+    is_ai_triaged = true
+WHERE status = 'PENDING_APPROVAL' AND report_code = 'RPT-DEMO-000001';
+
+-- Flagged for Review: Description mismatch in pending approval
+UPDATE reports
+SET ai_confidence_score = 50,
+    ai_triage_decision = 'FLAGGED_FOR_REVIEW',
+    ai_image_quality = 'MISMATCH',
+    ai_flags = 'DESCRIPTION_MISMATCH',
+    ai_reasoning = 'Description keywords indicate a potential conflict with category. Routed to administrator queue for category verification.',
+    is_ai_triaged = true
+WHERE status = 'PENDING_APPROVAL' AND report_code = 'RPT-DEMO-000002';
+
+-- Flagged for Review: High risk hazard in pending approval
+UPDATE reports
+SET ai_confidence_score = 72,
+    ai_triage_decision = 'FLAGGED_FOR_REVIEW',
+    ai_image_quality = 'CLEAR',
+    ai_flags = 'HIGH_RISK_HAZARD',
+    ai_reasoning = 'Urgent public safety hazard indicator detected. Escalated for immediate human administrator oversight.',
+    is_ai_triaged = true
+WHERE status = 'PENDING_APPROVAL' AND report_code = 'RPT-DEMO-000003';
+
+-- ----------------------------------------------------------------------------
 -- 5. RE-ALIGN ALL POSTGRESQL SERIAL PRIMARY KEY SEQUENCES
 -- ----------------------------------------------------------------------------
 SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE(MAX(id), 1)) FROM users;

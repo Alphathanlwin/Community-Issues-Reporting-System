@@ -5,6 +5,7 @@ import com.uit.scirs.common.security.CurrentUser;
 import com.uit.scirs.report.dto.AssignReportDTO;
 import com.uit.scirs.report.dto.CreateReportCommentDTO;
 import com.uit.scirs.report.dto.CreateReportDTO;
+import com.uit.scirs.report.dto.OverrideAiDecisionDTO;
 import com.uit.scirs.report.dto.RejectReportDTO;
 import com.uit.scirs.report.dto.ReportCommentDTO;
 import com.uit.scirs.report.dto.PublicReportDTO;
@@ -173,6 +174,15 @@ public class ReportController {
     public ResponseEntity<ReportDTO> assign(@PathVariable Long id, @Valid @RequestBody AssignReportDTO dto,
                                              @AuthenticationPrincipal CurrentUser currentUser) {
         return ResponseEntity.ok(reportAssignmentService.assign(id, dto, currentUser));
+    }
+
+    @PatchMapping("/{id}/ai-override")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ReportDTO> overrideAiDecision(
+            @PathVariable Long id,
+            @Valid @RequestBody OverrideAiDecisionDTO dto,
+            @AuthenticationPrincipal CurrentUser currentUser) {
+        return ResponseEntity.ok(reportWorkflowService.overrideAiDecision(id, dto, currentUser));
     }
 
     @PatchMapping("/{id}/priority")

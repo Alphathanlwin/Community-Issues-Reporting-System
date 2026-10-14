@@ -29,7 +29,8 @@ import java.util.List;
 @Entity
 @Table(name = "reports", indexes = {
         @Index(name = "idx_reports_status", columnList = "status"),
-        @Index(name = "idx_reports_coordinates", columnList = "latitude, longitude")
+        @Index(name = "idx_reports_coordinates", columnList = "latitude, longitude"),
+        @Index(name = "idx_reports_ai_triage", columnList = "ai_triage_decision")
 })
 public class Report {
 
@@ -97,6 +98,27 @@ public class Report {
 
     @Column(name = "rejection_reason")
     private String rejectionReason;
+
+    @Column(name = "ai_confidence_score")
+    private Integer aiConfidenceScore;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ai_triage_decision")
+    private AiTriageDecision aiTriageDecision;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ai_image_quality")
+    private AiImageQuality aiImageQuality;
+
+    @Column(name = "ai_reasoning", columnDefinition = "TEXT")
+    private String aiReasoning;
+
+    @Column(name = "ai_flags")
+    private String aiFlags;
+
+    @Column(name = "is_ai_triaged", nullable = false)
+    @ColumnDefault("false")
+    private boolean aiTriaged = false;
 
     @org.hibernate.annotations.BatchSize(size = 50)
     @OneToMany(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -308,5 +330,53 @@ public class Report {
 
     public void setClosedAt(LocalDateTime closedAt) {
         this.closedAt = closedAt;
+    }
+
+    public Integer getAiConfidenceScore() {
+        return aiConfidenceScore;
+    }
+
+    public void setAiConfidenceScore(Integer aiConfidenceScore) {
+        this.aiConfidenceScore = aiConfidenceScore;
+    }
+
+    public AiTriageDecision getAiTriageDecision() {
+        return aiTriageDecision;
+    }
+
+    public void setAiTriageDecision(AiTriageDecision aiTriageDecision) {
+        this.aiTriageDecision = aiTriageDecision;
+    }
+
+    public AiImageQuality getAiImageQuality() {
+        return aiImageQuality;
+    }
+
+    public void setAiImageQuality(AiImageQuality aiImageQuality) {
+        this.aiImageQuality = aiImageQuality;
+    }
+
+    public String getAiReasoning() {
+        return aiReasoning;
+    }
+
+    public void setAiReasoning(String aiReasoning) {
+        this.aiReasoning = aiReasoning;
+    }
+
+    public String getAiFlags() {
+        return aiFlags;
+    }
+
+    public void setAiFlags(String aiFlags) {
+        this.aiFlags = aiFlags;
+    }
+
+    public boolean isAiTriaged() {
+        return aiTriaged;
+    }
+
+    public void setAiTriaged(boolean aiTriaged) {
+        this.aiTriaged = aiTriaged;
     }
 }
